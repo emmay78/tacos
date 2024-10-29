@@ -45,7 +45,18 @@ docker pull astrasim/tacos:latest
 
 4. Run TACOS with the provided script.
 ```sh
-[docker] ./tacos.sh
+[docker] ./tacos.sh -f input.csv
+```
+
+Here is an example `input.csv`:
+```txt
+5
+Src,Dest,Latency (ns),Bandwidth (GB/s)
+0,1,500,50
+1,2,500,50
+2,3,500,50
+3,4,500,50
+4,0,500,50
 ```
 
 If you'd like to analyze the codebase, `src/main.cpp` is the main entry point.
