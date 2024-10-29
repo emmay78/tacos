@@ -3,6 +3,13 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 *******************************************************************************/
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <tuple>
+// #include <string>
+#include <stdexcept>
 #include <cassert>
 #include <limits>
 #include <tacos/topology/topology.h>
@@ -140,4 +147,67 @@ Topology::Bandwidth Topology::getBandwidth(NpuID src, NpuID dest) const noexcept
     assert(0 <= dest && dest < npusCount);
 
     return bandwidths[src][dest];
+}
+
+void Topology::connectFromAdjacency(std::vector<std::tuple<NpuID, NpuID, Latency, Bandwidth>> adjMatrix, int npuCount) noexcept {
+    assert(adjMatrix.size() > 0);
+    setNpusCount(npuCount);
+    for (auto i = 0; i < adjMatrix.size(); i++) {
+        NpuID src = std::get<0>(adjMatrix[i]);
+        NpuID dest = std::get<1>(adjMatrix[i]);
+        Latency latency = std::get<2>(adjMatrix[i]);
+        Bandwidth bandwidth = std::get<3>(adjMatrix[i]);
+        connect(src, dest, latency, bandwidth);
+    }
+}
+
+void Topology::connectFromFile(std::string filename) {
+    // Vector to hold the tuples
+    std::vector<std::tuple<NpuID, NpuID, Latency, Bandwidth>> adjMat;
+
+    // Open the file
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Error opening file: " + filename);
+    }
+
+    std::string line;
+
+    // Step 1: Read npuCount from the first line
+    if (!std::getline(file, line)) {
+        throw std::runtime_error("Error reading npuCount line from file");
+    }
+    int npuCount;
+    try {
+        npuCount = std::stoi(line);
+    } catch (const std::invalid_argument& e) {
+        throw std::runtime_error("Error parsing npuCount: " + line);
+    }
+
+    // Step 2: Skip the header line
+    if (!std::getline(file, line)) {
+        throw std::runtime_error("Error reading header line from file");
+    }
+
+    // Step 3: Process remaining lines for data
+    while (std::getline(file, line)) {
+        std::istringstream stream(line);
+
+        NpuID src, dest;
+        Latency latency; 
+        Bandwidth bandwidth;
+        char comma;
+
+        // Parse the line and extract values
+        if (stream >> src >> comma >> dest >> comma >> latency >> comma >> bandwidth) {
+            adjMat.emplace_back(src, dest, latency, bandwidth);
+        } else {
+            throw std::runtime_error("Error parsing line: " + line);
+        }
+    }
+
+    file.close();
+
+    connectFromAdjacency(adjMat, npuCount);
+
 }

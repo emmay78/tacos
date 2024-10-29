@@ -13,7 +13,13 @@ LICENSE file in the root directory of this source tree.
 
 using namespace tacos;
 
-int main() {
+int main(int argc, char* argv[]) {
+    // ensure arguments
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <filename.csv>" << std::endl;
+        return 1;
+    }
+
     // set print precision
     fixed(std::cout);
     std::cout.precision(2);
@@ -23,12 +29,8 @@ int main() {
     std::cout << std::endl;
 
     // construct a topology
-    const auto width = 3;
-    const auto height = 3;
-    const auto bandwidth = 50.0;  // GB/s
-    const auto latency = 500;     // ns
-
-    const auto topology = std::make_shared<Mesh2D>(width, height, latency, bandwidth);
+    const auto topology = std::make_shared<Topology>();
+    topology->connectFromFile(argv[1]);
     const auto npusCount = topology->getNpusCount();
 
     std::cout << "[Topology Information]" << std::endl;

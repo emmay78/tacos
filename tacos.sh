@@ -24,9 +24,13 @@ function compile {
     cmake --build "$BUILD_DIR" --parallel $(nproc)
 }
 
-# run TACOS
+# run TACOS with an optional filename argument
 function run {
-    ./build/bin/tacos
+    if [ -n "$1" ]; then
+        ./build/bin/tacos "$1"
+    else
+        ./build/bin/tacos
+    fi
 }
 
 # cleanup build
@@ -42,40 +46,63 @@ function print_help {
     printf "\t--help (-h): Print this message\n"
     printf "\t--compile (-c): Compile TACOS\n"
     printf "\t--run (-r): Run the compiled TACOS executable\n"
+    printf "\t--file (-f) <filename>: Run TACOS with the specified CSV file\n"
     printf "\t--clean (-l): Remove the TACOS build directory\n"
     printf "\t(noflag): Compile and execute TACOS\n"
 }
 
-# execute
-# no flag: compile and run
-if [ $# -eq 0 ]; then
+# Variables for flags
+filename=""
+
+# Parse arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit 0
+            ;;
+        -l|--clean)
+            cleanup
+            exit 0
+            ;;
+        -c|--compile)
+            compile_chakra
+            compile
+            exit 0
+            ;;
+        -k|--chakra)
+            compile_chakra
+            exit 0
+            ;;
+        -r|--run)
+            run "$filename"
+            exit 0
+            ;;
+        -f|--file)
+            if [ -n "$2" ]; then
+                filename="$2"
+                shift
+            else
+                echo "Error: --file requires a filename argument."
+                exit 1
+            fi
+            ;;
+        *)
+            echo "[TACOS] Unknown flag: $1"
+            print_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+# If no flags, compile and run without filename
+if [ -z "$filename" ]; then
     compile_chakra
     compile
     run
-    exit $?
+else
+    compile_chakra
+    compile
+    run "$filename"
 fi
-
-# flag given
-case "$1" in
-    -h|--help)
-        print_help
-        ;;
-    -l|--clean)
-        cleanup
-        ;;
-    -c|--compile)
-        compile_chakra
-        compile
-        ;;
-    -k|--chakra)
-        compile_chakra
-        ;;
-    -r|--run)
-        run
-        ;;
-    *)
-        echo "[TACOS] Unknown flag: $1"
-        print_help
-        exit 1
-        ;;
-esac

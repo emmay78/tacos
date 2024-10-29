@@ -10,6 +10,7 @@ LICENSE file in the root directory of this source tree.
 #include <tacos/event-queue/event_queue.h>
 #include <tuple>
 #include <vector>
+#include <string>
 
 namespace tacos {
 
@@ -40,6 +41,10 @@ class Topology {
     [[nodiscard]] Latency getLatency(NpuID src, NpuID dest) const noexcept;
 
     [[nodiscard]] Bandwidth getBandwidth(NpuID src, NpuID dest) const noexcept;
+
+    void connectFromAdjacency(std::vector<std::tuple<NpuID, NpuID, Latency, Bandwidth>> adjMat, int npuCount) noexcept;
+
+    void connectFromFile(std::string filename);
 
   protected:
     void setNpusCount(int newNpusCount) noexcept;
