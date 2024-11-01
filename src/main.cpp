@@ -7,6 +7,7 @@ LICENSE file in the root directory of this source tree.
 #include <tacos/collective/all_gather.h>
 #include <tacos/event-queue/timer.h>
 #include <tacos/synthesizer/synthesizer.h>
+#include <tacos/synthesizer/beam_synthesizer.h>
 #include <tacos/topology/mesh_2d.h>
 #include <tacos/writer/csv_writer.h>
 #include <tacos/writer/synthesis_result.h>
@@ -14,9 +15,9 @@ LICENSE file in the root directory of this source tree.
 using namespace tacos;
 
 int main(int argc, char* argv[]) {
-    // ensure arguments
+    // ensure at least one argument
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename.csv>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <filename.csv> [optional_second_argument]" << std::endl;
         return 1;
     }
 
@@ -51,8 +52,24 @@ int main(int argc, char* argv[]) {
     std::cout << " (" << chunkSizeMB << " MB)" << std::endl;
     std::cout << std::endl;
 
-    // instantiate synthesizer
-    auto synthesizer = Synthesizer(topology, collective);
+    // instantiate synthesizer based on input arguments
+    std::unique_ptr<Synthesizer> synthesizer;
+    if (argc < 3) {
+        // No beam argument: use Synthesizer
+        synthesizer = std::make_unique<Synthesizer>(topology, collective);
+        std::cout << "[Using Synthesizer]" << std::endl;
+    } else {
+        // Second argument provided: use BeamSynthesizer
+        int beam_width;
+        try {
+            beam_width = std::stoi(argv[2]);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Error: Second argument must be an integer." << std::endl;
+            return 1;
+        }
+        synthesizer = std::make_unique<BeamSynthesizer>(topology, collective, beam_width);
+        std::cout << "[Using BeamSynthesizer with beam width: " << beam_width << "]" << std::endl;
+    }
 
     // create timer
     auto timer = Timer();
@@ -61,7 +78,7 @@ int main(int argc, char* argv[]) {
     std::cout << "[Synthesis Process]" << std::endl;
 
     timer.start();
-    const auto synthesisResult = synthesizer.synthesize();
+    const auto synthesisResult = synthesizer->synthesize();  // Call synthesize on SynthesizerBase pointer
     timer.stop();
 
     std::cout << std::endl;

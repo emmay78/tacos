@@ -24,12 +24,18 @@ function compile {
     cmake --build "$BUILD_DIR" --parallel $(nproc)
 }
 
-# run TACOS with an optional filename argument
+# run TACOS with filename and optional beam argument
 function run {
     if [ -n "$1" ]; then
-        ./build/bin/tacos "$1"
+        if [ -n "$2" ]; then
+            ./build/bin/tacos "$1" "$2"  # Run with filename and beam
+        else
+            ./build/bin/tacos "$1"       # Run with filename only
+        fi
     else
-        ./build/bin/tacos
+        echo "Error: Filename is required for running."
+        print_help
+        exit 1
     fi
 }
 
@@ -45,14 +51,16 @@ function print_help {
     echo "TACOS:"
     printf "\t--help (-h): Print this message\n"
     printf "\t--compile (-c): Compile TACOS\n"
-    printf "\t--run (-r): Run the compiled TACOS executable\n"
-    printf "\t--file (-f) <filename>: Run TACOS with the specified CSV file\n"
+    printf "\t--run (-r): Run the compiled TACOS executable (requires --file, optional --beam)\n"
+    printf "\t--file (-f) <filename>: Specify the CSV file for TACOS\n"
+    printf "\t--beam (-b) <integer>: Specify the optional beam integer for TACOS\n"
     printf "\t--clean (-l): Remove the TACOS build directory\n"
-    printf "\t(noflag): Compile and execute TACOS\n"
+    printf "\t(noflag): Compile and execute TACOS with required parameters\n"
 }
 
 # Variables for flags
 filename=""
+beam=""
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -75,7 +83,13 @@ while [[ "$#" -gt 0 ]]; do
             exit 0
             ;;
         -r|--run)
-            run "$filename"
+            # Ensure filename is provided
+            if [ -z "$filename" ]; then
+                echo "Error: --run requires --file to be specified."
+                print_help
+                exit 1
+            fi
+            run "$filename" "$beam"
             exit 0
             ;;
         -f|--file)
@@ -84,6 +98,15 @@ while [[ "$#" -gt 0 ]]; do
                 shift
             else
                 echo "Error: --file requires a filename argument."
+                exit 1
+            fi
+            ;;
+        -b|--beam)
+            if [[ "$2" =~ ^[0-9]+$ ]]; then
+                beam="$2"
+                shift
+            else
+                echo "Error: --beam requires an integer argument."
                 exit 1
             fi
             ;;
@@ -96,13 +119,13 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# If no flags, compile and run without filename
+# If no flags, compile and run with required filename and optional beam
 if [ -z "$filename" ]; then
-    compile_chakra
-    compile
-    run
+    echo "Error: --file is required to run TACOS."
+    print_help
+    exit 1
 else
     compile_chakra
     compile
-    run "$filename"
+    run "$filename" "$beam"
 fi

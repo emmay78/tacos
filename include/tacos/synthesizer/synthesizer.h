@@ -29,7 +29,7 @@ class Synthesizer {
 
     [[nodiscard]] SynthesisResult synthesize() noexcept;
 
-  private:
+  protected:
     EventQueue eventQueue = {};
     Time currentTime;
 
@@ -56,7 +56,7 @@ class Synthesizer {
     std::random_device randomDevice = {};
     std::mt19937 randomEngine = decltype(randomEngine)(randomDevice());
 
-    void scheduleNextEvents() noexcept;
+    virtual void scheduleNextEvents() noexcept;
 
     void linkChunkMatching() noexcept;
 

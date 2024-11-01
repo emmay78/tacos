@@ -59,6 +59,12 @@ Src,Dest,Latency (ns),Bandwidth (GB/s)
 4,0,500,50
 ```
 
+5. Run BEAM TACOS by passing in an additional argument.
+```sh
+[docker] ./tacos.sh -f input.csv -b 3
+```
+
+
 If you'd like to analyze the codebase, `src/main.cpp` is the main entry point.
 
 ## Contact Us
