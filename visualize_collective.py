@@ -74,7 +74,7 @@ def main():
     df['Bandwidth (GB/s=B/ns)'] = df['Bandwidth (GB/s=B/ns)'].astype(float)
 
     # Calculate link crossing times (time to traverse each link)
-    df['Link Time (ns)'] = df['Latency (ns)'] + (results["Chunk_Size"] / df['Bandwidth (GB/s=B/ns)'])
+    df['Link Time (ns)'] = df['Latency (ns)'] + ( (results["Chunk_Size"])/(1 << 30))*(1e9/df['Bandwidth (GB/s=B/ns)'])
     
     # Create network graph
     G = nx.DiGraph()

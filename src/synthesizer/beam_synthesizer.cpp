@@ -215,6 +215,9 @@ void BeamSynthesizer::markLinkChunkMatch(const NpuID src,
     // mark the synthesis result
     beam_results[beam_index].markLinkChunkMatch(chunk, src, dest, currentTime);
 
+    // mark the link as occupied
+    beam_tens[beam_index].markLinkOccupied(src, dest);
+
     // insert the chunk to the precondition
     beam_preconditions[beam_index][dest].insert(chunk);
 

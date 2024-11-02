@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     // target collective
-    const auto chunkSize = 1'048'576 * 1000;  // B
+    const auto chunkSize = 1'048'576;  // B
     const auto initChunksPerNpu = 1;
 
     const auto collective = std::make_shared<AllGather>(npusCount, chunkSize, initChunksPerNpu);
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     SynthesisResult synthesisResult(topology, collective);
     if (argc < 3) {
         // No beam argument: use Synthesizer
-        auto synthesizer = std::make_unique<Synthesizer>(topology, collective, true);
+        auto synthesizer = std::make_unique<Synthesizer>(topology, collective);
         std::cout << "[Using Synthesizer]" << std::endl;
         synthesisResult = synthesizer->synthesize();  // Call synthesize on SynthesizerBase pointer
     } else {
