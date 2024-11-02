@@ -4,6 +4,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.widgets import Slider
 
 def process_collective_algo(filename):
     data = {
@@ -85,9 +86,13 @@ def main():
     edge_labels = {(row['SrcID'], row['DestID']): f"{row['Link Time (ns)']:.2f} ns" for _, row in df.iterrows()}
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax)
 
+    # Set up the slider
+    max_frame = int(results["Collective_Time"] / 1000)
+    ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03], facecolor="lightgrey")
+    slider = Slider(ax_slider, "Time (ms)", 0, max_frame/1000+1, valinit=0, valstep=1)
+
     # Animation setup
     chunk_positions = {edge: [] for edge in G.edges}
-    arrived_chunks = {node: [] for node in G.nodes}
     
     # Calculate departure times based on arrival times and link crossing times
     for (src, dest), data in G.edges.items():
@@ -102,6 +107,7 @@ def main():
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax)
 
         frame_ns = frame * 1000
+        arrived_chunks = {node: [] for node in G.nodes}
         for (src, dest), chunks in chunk_positions.items():
             for chunk_id, start_time_ns, arrival_time_ns in chunks:
                 # Start moving the chunk only after its calculated departure time
@@ -128,12 +134,17 @@ def main():
         if frame_ns >= results["Collective_Time"] / 1000:
             ani.event_source.stop()
 
-    # Set up animation
-    ani = animation.FuncAnimation(
-        fig, update, frames=range(0, int(df['Link Time (ns)'].max()) + 50), interval=50
-    )
-    plt.show()
 
+    # Function to handle slider updates
+    def on_slider_change(val):
+        frame = int(slider.val)
+        update(frame)
+
+    slider.on_changed(on_slider_change)  # Update animation on slider change
+
+    # Initialize animation
+    ani = animation.FuncAnimation(fig, update, frames=range(0, max_frame + 1), interval=50, repeat=False)
+    plt.show()
 
 if __name__ == "__main__":
     main()
