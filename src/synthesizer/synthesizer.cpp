@@ -182,7 +182,7 @@ void Synthesizer::markLinkChunkMatch(const NpuID src,
     }
 
     // mark the synthesis result
-    synthesisResult.markLinkChunkMatch(chunk, src, dest);
+    synthesisResult.markLinkChunkMatch(chunk, src, dest, currentTime);
 
     // insert the chunk to the precondition
     precondition[dest].insert(chunk);

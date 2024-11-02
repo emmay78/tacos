@@ -49,6 +49,7 @@ void CsvWriter::writeMetadata(std::ofstream& csvFile) const noexcept {
     csvFile << "Links Count," << topology->getLinksCount() << std::endl;
     csvFile << "Chunks Count," << collective->getChunksCount() << std::endl;
     csvFile << "Chunk Size," << collective->getChunkSize() << ",B" << std::endl;
+    csvFile << "Collective Time," << synthesisResult.getCollectiveTime() << ",ps" << std::endl;
 }
 
 void CsvWriter::writeHeader(std::ofstream& csvFile) const noexcept {
@@ -56,7 +57,7 @@ void CsvWriter::writeHeader(std::ofstream& csvFile) const noexcept {
     csvFile << "DestID,";
     csvFile << "Latency (ns),";
     csvFile << "Bandwidth (GB/s),";
-    csvFile << "Chunks" << std::endl;
+    csvFile << "Chunks (ID:ps)" << std::endl;
 }
 
 void CsvWriter::writeSynthesisResult(std::ofstream& csvFile) const noexcept {
@@ -90,12 +91,12 @@ void CsvWriter::writeLinkInfo(const NpuID src,
     }
 
     if (egressLinksInfo.size() == 1) {
-        csvFile << egressLinksInfo[0] << std::endl;
+        csvFile << std::get<0>(egressLinksInfo[0]) << ":" << std::get<1>(egressLinksInfo[0]) << std::endl;
         return;
     }
 
     for (auto i = 0; i < egressLinksInfo.size() - 1; i++) {
-        csvFile << egressLinksInfo[i] << ",";
+        csvFile << std::get<0>(egressLinksInfo[i]) << ":" << std::get<1>(egressLinksInfo[i]) << ",";
     }
-    csvFile << egressLinksInfo.back() << std::endl;
+    csvFile << std::get<0>(egressLinksInfo.back()) << ":" << std::get<1>(egressLinksInfo.back()) << std::endl;
 }

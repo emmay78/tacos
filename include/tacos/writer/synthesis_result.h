@@ -22,15 +22,15 @@ class SynthesisResult {
     SynthesisResult(std::shared_ptr<Topology> topology,
                     std::shared_ptr<Collective> collective) noexcept;
 
-    void markLinkChunkMatch(ChunkID chunk, NpuID src, NpuID dest) noexcept;
+    void markLinkChunkMatch(ChunkID chunk, NpuID src, NpuID dest, Time currentTime) noexcept;
 
     void setCollectiveTime(Time newCollectiveTime) noexcept;
 
     [[nodiscard]] Time getCollectiveTime() const noexcept;
 
-    [[nodiscard]] std::vector<ChunkID> getEgressLinkInfo(NpuID src, NpuID dest) const noexcept;
+    [[nodiscard]] std::vector<std::tuple<ChunkID, Time>> getEgressLinkInfo(NpuID src, NpuID dest) const noexcept;
 
-    [[nodiscard]] std::vector<ChunkID> getIngressLinkInfo(NpuID src, NpuID dest) const noexcept;
+    [[nodiscard]] std::vector<std::tuple<ChunkID, Time>> getIngressLinkInfo(NpuID src, NpuID dest) const noexcept;
 
   private:
     int npusCount;

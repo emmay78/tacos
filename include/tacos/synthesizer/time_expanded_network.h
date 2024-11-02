@@ -21,6 +21,8 @@ class TimeExpandedNetwork {
     void updateCurrentTime(Time newCurrentTime) noexcept;
 
     std::set<NpuID> backtrackTEN(NpuID dest) const noexcept;
+  
+    // std::set<NpuID> backtrackTENWithTimes(NpuID dest) const noexcept;
 
     void markLinkOccupied(NpuID src, NpuID dest) noexcept;
 

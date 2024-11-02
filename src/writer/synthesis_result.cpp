@@ -24,16 +24,17 @@ SynthesisResult::SynthesisResult(const std::shared_ptr<Topology> topology,
 
 void SynthesisResult::markLinkChunkMatch(const ChunkID chunk,
                                          const NpuID src,
-                                         const NpuID dest) noexcept {
+                                         const NpuID dest,
+                                         const Time currentTime) noexcept {
     assert(0 <= chunk && chunk < chunksCount);
     assert(0 <= src && src < npusCount);
     assert(0 <= dest && dest < npusCount);
 
     // egress: src -> dest
-    npuResults[src].addEgressLinkInfo(chunk, dest);
+    npuResults[src].addEgressLinkInfo(chunk, dest, currentTime);
 
     // ingress: dest <- src
-    npuResults[dest].addIngressLinkInfo(chunk, src);
+    npuResults[dest].addIngressLinkInfo(chunk, src, currentTime);
 }
 
 void SynthesisResult::setCollectiveTime(Time newCollectiveTime) noexcept {
@@ -44,7 +45,7 @@ SynthesisResult::Time SynthesisResult::getCollectiveTime() const noexcept {
     return collectiveTime;
 }
 
-std::vector<SynthesisResult::ChunkID> SynthesisResult::getEgressLinkInfo(
+std::vector<std::tuple<SynthesisResult::ChunkID,SynthesisResult::Time>> SynthesisResult::getEgressLinkInfo(
     const NpuID src, const NpuID dest) const noexcept {
     assert(0 <= src && src < npusCount);
     assert(0 <= dest && dest < npusCount);
@@ -52,7 +53,7 @@ std::vector<SynthesisResult::ChunkID> SynthesisResult::getEgressLinkInfo(
     return npuResults[src].getEgressLinkInfo(dest);
 }
 
-std::vector<SynthesisResult::ChunkID> SynthesisResult::getIngressLinkInfo(
+std::vector<std::tuple<SynthesisResult::ChunkID,SynthesisResult::Time>> SynthesisResult::getIngressLinkInfo(
     const NpuID src, const NpuID dest) const noexcept {
     assert(0 <= src && src < npusCount);
     assert(0 <= dest && dest < npusCount);

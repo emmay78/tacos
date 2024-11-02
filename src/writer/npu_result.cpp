@@ -37,27 +37,27 @@ NpuResult::NpuResult(const int npu,
     }
 }
 
-void NpuResult::addIngressLinkInfo(ChunkID chunk, NpuID src) noexcept {
+void NpuResult::addIngressLinkInfo(ChunkID chunk, NpuID src, Time currentTime) noexcept {
     assert(0 <= chunk && chunk < chunksCount);
     assert(0 <= src && src < npusCount);
     assert(ingressLinksInfo.find(src) != ingressLinksInfo.end());
 
-    ingressLinksInfo[src].push_back(chunk);
+    ingressLinksInfo[src].push_back(std::tuple<ChunkID, Time>(chunk,currentTime));
 
     // mark dependency info
     const auto opIdx = ingressLinksInfo[src].size() - 1;
     dependencyInfo[chunk] = opIdx;
 }
 
-void NpuResult::addEgressLinkInfo(ChunkID chunk, NpuID dest) noexcept {
+void NpuResult::addEgressLinkInfo(ChunkID chunk, NpuID dest, Time currentTime) noexcept {
     assert(0 <= chunk && chunk < chunksCount);
     assert(0 <= dest && dest < npusCount);
     assert(egressLinksInfo.find(dest) != egressLinksInfo.end());
 
-    egressLinksInfo[dest].push_back(chunk);
+    egressLinksInfo[dest].push_back(std::tuple<ChunkID, Time>(chunk,currentTime));
 }
 
-std::vector<NpuResult::ChunkID> NpuResult::getIngressLinkInfo(const NpuID src) const noexcept {
+std::vector<std::tuple<NpuResult::ChunkID,NpuResult::Time>> NpuResult::getIngressLinkInfo(const NpuID src) const noexcept {
     assert(0 <= src && src < npusCount);
 
     if (ingressLinksInfo.find(src) == ingressLinksInfo.end()) {
@@ -67,7 +67,7 @@ std::vector<NpuResult::ChunkID> NpuResult::getIngressLinkInfo(const NpuID src) c
     return ingressLinksInfo.at(src);
 }
 
-std::vector<NpuResult::ChunkID> NpuResult::getEgressLinkInfo(const NpuID dest) const noexcept {
+std::vector<std::tuple<NpuResult::ChunkID,NpuResult::Time>> NpuResult::getEgressLinkInfo(const NpuID dest) const noexcept {
     assert(0 <= dest && dest < npusCount);
 
     if (egressLinksInfo.find(dest) == egressLinksInfo.end()) {

@@ -4,6 +4,7 @@ LICENSE file in the root directory of this source tree.
 *******************************************************************************/
 
 #include <cassert>
+#include <unordered_map>
 #include <tacos/synthesizer/time_expanded_network.h>
 
 using namespace tacos;
@@ -32,6 +33,21 @@ std::set<TimeExpandedNetwork::NpuID> TimeExpandedNetwork::backtrackTEN(
 
     return sourceNpus;
 }
+
+// std::unordered_map<TimeExpandedNetwork::NpuID,Time> TimeExpandedNetwork::backtrackTENWithTimes(
+//     const NpuID dest) const noexcept {
+//     assert(0 <= dest && dest < npusCount);
+
+//     // check available source links
+//     auto sourceNpus = std::set<NpuID>();
+//     for (auto src = 0; src < npusCount; src++) {
+//         if (linkAvailable[src][dest]) {
+//             sourceNpus.insert(src);
+//         }
+//     }
+
+//     return sourceNpus;
+// }
 
 void TimeExpandedNetwork::updateCurrentTime(const Time newCurrentTime) noexcept {
     assert(newCurrentTime > currentTime);
