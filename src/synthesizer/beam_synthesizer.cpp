@@ -28,16 +28,8 @@ BeamSynthesizer::BeamSynthesizer(const std::shared_ptr<Topology> topology,
     const auto chunkSize = collective->getChunkSize();
     topology->setChunkSize(chunkSize);
     distinctLinkDelays = topology->getDistinctLinkDelays();
-    
-    // std::cout << "\tDistinct Link Delays: ";
-    // for (Time const& time : distinctLinkDelays)
-    // {
-    //     std::cout << time << ' ';
-    // }
-    // std::cout << std::endl;
 
     // setup initial precondition and postcondition
-
     for (int i = 0; i < num_beams; i++) {
         beam_tens.emplace_back(TimeExpandedNetwork(topology));
         beam_preconditions.emplace_back(collective->getPrecondition());
@@ -57,41 +49,24 @@ SynthesisResult BeamSynthesizer::synthesize() noexcept {
         std::cout << "\tCurrent Time: " << currentTime << std::endl;
         for (int i = 0; i < num_beams; i++) {
             if(!synthesisCompleted(i)) {
-                std::cout << "HI:" << i << std::endl;
                 // update TEN current time
                 beam_tens[i].updateCurrentTime(currentTime);
-                std::cout << "HI2:" << i << std::endl;
                 // run link-chunk matching
                 linkChunkMatching(i);
             }
             else if (beam_results[i].getCollectiveTime()==0) {
                 beam_results[i].setCollectiveTime(currentTime);
             }
-            else {
-                std::cout << "WELP" << std::endl;
-            }
         }
 
         // if synthesis is completed, break
-        for(int i=0; i<num_beams; i++) {
-            std::cout << synthesisCompleted(i) << std::endl;
-        }
         std::vector<int> indices(num_beams, 0);
         std::generate(indices.begin(), indices.end(), [n = 0]() mutable { return n++; });
-
         if (std::all_of(indices.begin(), indices.end(),
                         [this](int i) { return synthesisCompleted(i); })) {
             break;
         }
-
-        // if (std::all_of()) {
-        //     break;
-        // }
-        // if (std::all_of(std::vector<int>(num_beams, 0).begin(), std::vector<int>(num_beams, 0).end(),
-        //         [this, n=0](int) mutable { return synthesisCompleted(n++); })) {
-        //     break;
-        // }
-
+        
         // if synthesis is not finished, schedule next events
         scheduleNextEvents();
     }
@@ -103,11 +78,8 @@ SynthesisResult BeamSynthesizer::synthesize() noexcept {
             beam_results[i].setCollectiveTime(currentTime);
         }
     }
-    for(int i=0; i<num_beams; i++) {
-        std::cout << beam_results[i].getCollectiveTime() << std::endl;
-    }
 
-    // return beam_results[0];
+    // return beam with smallest collective time
     return *std::min_element(beam_results.begin(), beam_results.end(),
         [](const SynthesisResult& a, const SynthesisResult& b) {
             return a.getCollectiveTime() < b.getCollectiveTime();
