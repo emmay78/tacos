@@ -28,6 +28,13 @@ BeamSynthesizer::BeamSynthesizer(const std::shared_ptr<Topology> topology,
     const auto chunkSize = collective->getChunkSize();
     topology->setChunkSize(chunkSize);
     distinctLinkDelays = topology->getDistinctLinkDelays();
+    if (verbose) {
+        std::cout << "Distinct Link Delays: ";
+        for (const auto& delay : distinctLinkDelays) {
+            std::cout << delay << " ";
+        }
+        std::cout << std::endl;
+    }
 
     // setup initial precondition and postcondition
     for (int i = 0; i < num_beams; i++) {

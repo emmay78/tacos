@@ -28,6 +28,13 @@ Synthesizer::Synthesizer(const std::shared_ptr<Topology> topology,
     const auto chunkSize = collective->getChunkSize();
     topology->setChunkSize(chunkSize);
     distinctLinkDelays = topology->getDistinctLinkDelays();
+    if (verbose) {
+        std::cout << "Distinct Link Delays: ";
+        for (const auto& delay : distinctLinkDelays) {
+            std::cout << delay << " ";
+        }
+        std::cout << std::endl;
+    }
 
     // setup initial precondition and postcondition
     precondition = collective->getPrecondition();
@@ -183,6 +190,9 @@ void Synthesizer::markLinkChunkMatch(const NpuID src,
 
     // mark the synthesis result
     synthesisResult.markLinkChunkMatch(chunk, src, dest, currentTime);
+
+    // mark the link as occupied
+    ten.markLinkOccupied(src, dest);
 
     // insert the chunk to the precondition
     precondition[dest].insert(chunk);

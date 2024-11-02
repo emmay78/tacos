@@ -54,6 +54,7 @@ ENV PATH="/opt/protobuf-25.3/install/bin:$PATH"
 ENV protobuf_DIR="/opt/protobuf-25.3/install"
 ### ======================================================
 
+RUN apt-get -y install protobuf-compiler libprotobuf-dev
 
 ### ================== Finalize ==========================
 ## Move to the application directory
