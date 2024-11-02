@@ -24,18 +24,23 @@ function compile {
     cmake --build "$BUILD_DIR" --parallel $(nproc)
 }
 
-# run TACOS with filename and optional beam argument
+# run TACOS with filename and the chosen flag
 function run {
-    if [ -n "$1" ]; then
-        if [ -n "$2" ]; then
-            ./build/bin/tacos "$1" "$2"  # Run with filename and beam
-        else
-            ./build/bin/tacos "$1"       # Run with filename only
-        fi
-    else
+    if [ -z "$1" ]; then
         echo "Error: Filename is required for running."
         print_help
         exit 1
+    fi
+    
+    # Run with the appropriate flag
+    if [ "$greedy" = true ]; then
+        ./build/bin/tacos "$1" --greedy  # Run with filename and greedy flag
+    elif [ -n "$multiple" ]; then
+        ./build/bin/tacos "$1" --multiple "$multiple"  # Run with filename and multiple
+    elif [ -n "$beam" ]; then
+        ./build/bin/tacos "$1" --beam "$beam"  # Run with filename and beam
+    else
+        ./build/bin/tacos "$1"  # Run with filename only
     fi
 }
 
@@ -51,9 +56,11 @@ function print_help {
     echo "TACOS:"
     printf "\t--help (-h): Print this message\n"
     printf "\t--compile (-c): Compile TACOS\n"
-    printf "\t--run (-r): Run the compiled TACOS executable (requires --file, optional --beam)\n"
+    printf "\t--run (-r): Run the compiled TACOS executable (requires --file, and optionally one of --beam, --multiple, or --greedy)\n"
     printf "\t--file (-f) <filename>: Specify the CSV file for TACOS\n"
-    printf "\t--beam (-b) <integer>: Specify the optional beam integer for TACOS\n"
+    printf "\t--beam (-b) <integer>: Specify the beam integer for TACOS\n"
+    printf "\t--multiple (-m) <integer>: Specify the multiple integer for TACOS\n"
+    printf "\t--greedy (-g): Run TACOS in greedy mode\n"
     printf "\t--clean (-l): Remove the TACOS build directory\n"
     printf "\t(noflag): Compile and execute TACOS with required parameters\n"
 }
@@ -61,6 +68,8 @@ function print_help {
 # Variables for flags
 filename=""
 beam=""
+multiple=""
+greedy=false
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -89,7 +98,7 @@ while [[ "$#" -gt 0 ]]; do
                 print_help
                 exit 1
             fi
-            run "$filename" "$beam"
+            run "$filename"
             exit 0
             ;;
         -f|--file)
@@ -102,6 +111,11 @@ while [[ "$#" -gt 0 ]]; do
             fi
             ;;
         -b|--beam)
+            if [ -n "$beam" ] || [ -n "$multiple" ] || [ "$greedy" = true ]; then
+                echo "Error: Only one of --beam, --multiple, or --greedy can be specified."
+                print_help
+                exit 1
+            fi
             if [[ "$2" =~ ^[0-9]+$ ]]; then
                 beam="$2"
                 shift
@@ -109,6 +123,28 @@ while [[ "$#" -gt 0 ]]; do
                 echo "Error: --beam requires an integer argument."
                 exit 1
             fi
+            ;;
+        -m|--multiple)
+            if [ -n "$beam" ] || [ -n "$multiple" ] || [ "$greedy" = true ]; then
+                echo "Error: Only one of --beam, --multiple, or --greedy can be specified."
+                print_help
+                exit 1
+            fi
+            if [[ "$2" =~ ^[0-9]+$ ]]; then
+                multiple="$2"
+                shift
+            else
+                echo "Error: --multiple requires an integer argument."
+                exit 1
+            fi
+            ;;
+        -g|--greedy)
+            if [ -n "$beam" ] || [ -n "$multiple" ] || [ "$greedy" = true ]; then
+                echo "Error: Only one of --beam, --multiple, or --greedy can be specified."
+                print_help
+                exit 1
+            fi
+            greedy=true
             ;;
         *)
             echo "[TACOS] Unknown flag: $1"
@@ -119,7 +155,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# If no flags, compile and run with required filename and optional beam
+# Ensure that filename is provided
 if [ -z "$filename" ]; then
     echo "Error: --file is required to run TACOS."
     print_help
@@ -127,5 +163,5 @@ if [ -z "$filename" ]; then
 else
     compile_chakra
     compile
-    run "$filename" "$beam"
+    run "$filename"
 fi

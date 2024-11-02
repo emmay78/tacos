@@ -6,6 +6,9 @@ LICENSE file in the root directory of this source tree.
 #include <iostream>
 #include <tacos/collective/all_gather.h>
 #include <tacos/event-queue/timer.h>
+#include <tacos/synthesizer/synthesizer.h>
+#include <tacos/synthesizer/greedy_synthesizer.h>
+#include <tacos/synthesizer/multiple_synthesizer.h>
 #include <tacos/synthesizer/beam_synthesizer.h>
 #include <tacos/synthesizer/synthesizer.h>
 #include <tacos/synthesizer/greedy_synthesizer.h>
@@ -14,6 +17,20 @@ LICENSE file in the root directory of this source tree.
 #include <tacos/writer/synthesis_result.h>
 
 using namespace tacos;
+
+std::string createOutfileName(const std::string& filename, const std::string& suffix) {
+    // Find the position of the last '/' to get the base filename
+    size_t lastSlashPos = filename.find_last_of("/\\");
+    std::string baseName = (lastSlashPos == std::string::npos) ? filename : filename.substr(lastSlashPos + 1);
+
+    // Remove the last four characters (assumes ".csv" extension)
+    if (baseName.size() > 4 && baseName.substr(baseName.size() - 4) == ".csv") {
+        baseName = baseName.substr(0, baseName.size() - 4);
+    }
+
+    // Create the output file name
+    return baseName + "_" + suffix + "_result.csv";
+}
 
 int main(int argc, char* argv[]) {
     // ensure at least one argument
@@ -60,25 +77,62 @@ int main(int argc, char* argv[]) {
     // synthesize collective algorithm
     std::cout << "[Synthesis Process]" << std::endl;
 
+    // Choose synthesizer based on the flag provided
     timer.start();
     SynthesisResult synthesisResult(topology, collective);
-    if (argc < 3) {
-        // No beam argument: use Synthesizer
+    std::string out_filename;
+    if (argc == 2) {
+        // No additional argument: use Synthesizer
         auto synthesizer = std::make_unique<Synthesizer>(topology, collective);
         std::cout << "[Using Synthesizer]" << std::endl;
-        synthesisResult = synthesizer->synthesize();  // Call synthesize on SynthesizerBase pointer
-    } else {
-        // Second argument provided: use BeamSynthesizer
-        int beam_width;
-        try {
-            beam_width = std::stoi(argv[2]);
-        } catch (const std::invalid_argument& e) {
-            std::cerr << "Error: Second argument must be an integer." << std::endl;
+        synthesisResult = synthesizer->synthesize();
+        out_filename = createOutfileName(argv[1],"tacos");
+    } else if (argc >= 3) {
+        std::string flag = argv[2];
+        if (flag == "--greedy") {
+            // GreedySynthesizer
+            auto synthesizer = std::make_unique<GreedySynthesizer>(topology, collective);
+            std::cout << "[Using GreedySynthesizer]" << std::endl;
+            synthesisResult = synthesizer->synthesize();
+            out_filename = createOutfileName(argv[1],"greedy");
+        }
+        else if (flag == "--multiple") {
+            // MultipleSynthesizer with specified multiple factor
+            int num_beams;
+            // Attempt to parse the integer argument
+            try {
+                num_beams = std::stoi(argv[3]);
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Error: Argument following " << flag << " must be an integer." << std::endl;
+                return 1;
+            }
+            auto synthesizer = std::make_unique<MultipleSynthesizer>(topology, collective, num_beams);
+            std::cout << "[Using MultipleSynthesizer with factor: " << num_beams << "]" << std::endl;
+            synthesisResult = synthesizer->synthesize();
+            out_filename = createOutfileName(argv[1],"multiple_"+std::to_string(num_beams));
+        }
+        else if (flag == "--beam") {
+            // BeamSynthesizer with specified beam width
+            int num_beams;
+            // Attempt to parse the integer argument
+            try {
+                num_beams = std::stoi(argv[3]);
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Error: Argument following " << flag << " must be an integer." << std::endl;
+                return 1;
+            }
+            auto synthesizer = std::make_unique<BeamSynthesizer>(topology, collective, num_beams);
+            std::cout << "[Using BeamSynthesizer with beam width: " << num_beams << "]" << std::endl;
+            synthesisResult = synthesizer->synthesize();
+            out_filename = createOutfileName(argv[1],"beam_"+std::to_string(num_beams));
+        }
+        else {
+            std::cerr << "Error: Invalid flag. Use --greedy, --multiple <integer>, or --beam <integer>." << std::endl;
             return 1;
         }
-        auto synthesizer = std::make_unique<BeamSynthesizer>(topology, collective, beam_width);
-        std::cout << "[Using BeamSynthesizer with beam width: " << beam_width << "]" << std::endl;
-        synthesisResult = synthesizer->synthesize();  // Call synthesize on SynthesizerBase pointer
+    } else {
+        std::cerr << "Error: Invalid arguments. Usage: " << argv[0] << " <filename.csv> [--greedy | --multiple <integer> | --beam <integer>]" << std::endl;
+        return 1;
     }
     timer.stop();
 
@@ -101,7 +155,7 @@ int main(int argc, char* argv[]) {
     // write results to file
     std::cout << "[Synthesis Result Dump]" << std::endl;
     const auto csvWriter = CsvWriter(topology, collective, synthesisResult);
-    csvWriter.write("tacos_synthesis_result.csv");
+    csvWriter.write(out_filename);
 
     std::cout << std::endl;
 
