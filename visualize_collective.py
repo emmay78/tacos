@@ -43,6 +43,8 @@ def process_collective_algo(filename):
                 # Parse Chunks column
                 chunks = []
                 for chunk in row[4:]:
+                    if chunk == "None":
+                        break
                     chunk_id, arrival_time_ps = chunk.split(':')
                     arrival_time_ns = int(arrival_time_ps) / 1000  # Convert ps to ns
                     chunks.append((int(chunk_id), arrival_time_ns))
