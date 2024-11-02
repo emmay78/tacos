@@ -8,6 +8,7 @@ LICENSE file in the root directory of this source tree.
 #include <tacos/event-queue/timer.h>
 #include <tacos/synthesizer/beam_synthesizer.h>
 #include <tacos/synthesizer/synthesizer.h>
+#include <tacos/synthesizer/greedy_synthesizer.h>
 #include <tacos/topology/mesh_2d.h>
 #include <tacos/writer/csv_writer.h>
 #include <tacos/writer/synthesis_result.h>
