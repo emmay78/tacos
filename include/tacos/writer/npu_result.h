@@ -28,16 +28,16 @@ class NpuResult {
 
     void addEgressLinkInfo(ChunkID chunk, NpuID dest, Time currentTime) noexcept;
 
-    std::vector<std::tuple<ChunkID,Time>> getIngressLinkInfo(NpuID src) const noexcept;
+    std::vector<std::tuple<ChunkID, Time>> getIngressLinkInfo(NpuID src) const noexcept;
 
-    std::vector<std::tuple<ChunkID,Time>> getEgressLinkInfo(NpuID dest) const noexcept;
+    std::vector<std::tuple<ChunkID, Time>> getEgressLinkInfo(NpuID dest) const noexcept;
 
   private:
     int npu;
     int npusCount;
     int chunksCount;
-    std::map<NpuID, std::vector<std::tuple<ChunkID,Time>>> ingressLinksInfo;
-    std::map<NpuID, std::vector<std::tuple<ChunkID,Time>>> egressLinksInfo;
+    std::map<NpuID, std::vector<std::tuple<ChunkID, Time>>> ingressLinksInfo;
+    std::map<NpuID, std::vector<std::tuple<ChunkID, Time>>> egressLinksInfo;
 
     std::map<ChunkID, std::optional<int>> dependencyInfo;
 };

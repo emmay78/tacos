@@ -6,8 +6,8 @@ LICENSE file in the root directory of this source tree.
 #include <iostream>
 #include <tacos/collective/all_gather.h>
 #include <tacos/event-queue/timer.h>
-#include <tacos/synthesizer/synthesizer.h>
 #include <tacos/synthesizer/beam_synthesizer.h>
+#include <tacos/synthesizer/synthesizer.h>
 #include <tacos/topology/mesh_2d.h>
 #include <tacos/writer/csv_writer.h>
 #include <tacos/writer/synthesis_result.h>
@@ -17,7 +17,8 @@ using namespace tacos;
 int main(int argc, char* argv[]) {
     // ensure at least one argument
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename.csv> [optional_second_argument]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <filename.csv> [optional_second_argument]"
+                  << std::endl;
         return 1;
     }
 
@@ -51,7 +52,6 @@ int main(int argc, char* argv[]) {
     std::cout << "\t- Chunk Size: " << chunkSize << " B";
     std::cout << " (" << chunkSizeMB << " MB)" << std::endl;
     std::cout << std::endl;
-
 
     // create timer
     auto timer = Timer();

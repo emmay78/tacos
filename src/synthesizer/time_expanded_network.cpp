@@ -4,8 +4,8 @@ LICENSE file in the root directory of this source tree.
 *******************************************************************************/
 
 #include <cassert>
-#include <unordered_map>
 #include <tacos/synthesizer/time_expanded_network.h>
+#include <unordered_map>
 
 using namespace tacos;
 

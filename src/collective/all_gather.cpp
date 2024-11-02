@@ -23,7 +23,7 @@ AllGather::AllGather(const int npusCount,
             for (int dest = 0; dest < npusCount; dest++) {
                 // for every src, make one chunk
                 // and distribute this chunk to every dests
-                if(src!=dest) {
+                if (src != dest) {
                     add(chunkID, src, dest);
                 }
             }

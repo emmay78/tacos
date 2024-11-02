@@ -28,9 +28,11 @@ class SynthesisResult {
 
     [[nodiscard]] Time getCollectiveTime() const noexcept;
 
-    [[nodiscard]] std::vector<std::tuple<ChunkID, Time>> getEgressLinkInfo(NpuID src, NpuID dest) const noexcept;
+    [[nodiscard]] std::vector<std::tuple<ChunkID, Time>> getEgressLinkInfo(
+        NpuID src, NpuID dest) const noexcept;
 
-    [[nodiscard]] std::vector<std::tuple<ChunkID, Time>> getIngressLinkInfo(NpuID src, NpuID dest) const noexcept;
+    [[nodiscard]] std::vector<std::tuple<ChunkID, Time>> getIngressLinkInfo(
+        NpuID src, NpuID dest) const noexcept;
 
   private:
     int npusCount;

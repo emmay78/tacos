@@ -11,9 +11,9 @@ LICENSE file in the root directory of this source tree.
 using namespace tacos;
 
 BeamSynthesizer::BeamSynthesizer(const std::shared_ptr<Topology> topology,
-                         const std::shared_ptr<Collective> collective,
-                         const int num_beams,
-                         const bool verbose) noexcept
+                                 const std::shared_ptr<Collective> collective,
+                                 const int num_beams,
+                                 const bool verbose) noexcept
     : topology(topology),
       collective(collective),
       num_beams(num_beams),
@@ -55,13 +55,12 @@ SynthesisResult BeamSynthesizer::synthesize() noexcept {
         currentTime = eventQueue.pop();
         std::cout << "\tCurrent Time: " << currentTime << std::endl;
         for (int i = 0; i < num_beams; i++) {
-            if(!synthesisCompleted(i)) {
+            if (!synthesisCompleted(i)) {
                 // update TEN current time
                 beam_tens[i].updateCurrentTime(currentTime);
                 // run link-chunk matching
                 linkChunkMatching(i);
-            }
-            else if (beam_results[i].getCollectiveTime()==0) {
+            } else if (beam_results[i].getCollectiveTime() == 0) {
                 beam_results[i].setCollectiveTime(currentTime);
             }
         }
@@ -73,25 +72,24 @@ SynthesisResult BeamSynthesizer::synthesize() noexcept {
                         [this](int i) { return synthesisCompleted(i); })) {
             break;
         }
-        
+
         // if synthesis is not finished, schedule next events
         scheduleNextEvents();
     }
     assert(std::all_of(std::vector<int>(num_beams, 0).begin(), std::vector<int>(num_beams, 0).end(),
-                [this, n=0](int) mutable { return synthesisCompleted(n++); }));
+                       [this, n = 0](int) mutable { return synthesisCompleted(n++); }));
 
-    for(int i=0; i<num_beams; i++) {
-        if (beam_results[i].getCollectiveTime()==0) {
+    for (int i = 0; i < num_beams; i++) {
+        if (beam_results[i].getCollectiveTime() == 0) {
             beam_results[i].setCollectiveTime(currentTime);
         }
     }
 
     // return beam with smallest collective time
     return *std::min_element(beam_results.begin(), beam_results.end(),
-        [](const SynthesisResult& a, const SynthesisResult& b) {
-            return a.getCollectiveTime() < b.getCollectiveTime();
-        }
-    );
+                             [](const SynthesisResult& a, const SynthesisResult& b) {
+                                 return a.getCollectiveTime() < b.getCollectiveTime();
+                             });
 }
 
 void BeamSynthesizer::scheduleNextEvents() noexcept {
@@ -203,13 +201,14 @@ BeamSynthesizer::NpuID BeamSynthesizer::selectSourceNpu(
 }
 
 void BeamSynthesizer::markLinkChunkMatch(const NpuID src,
-                                     const NpuID dest,
-                                     const ChunkID chunk,
-                                     int beam_index) noexcept {
+                                         const NpuID dest,
+                                         const ChunkID chunk,
+                                         int beam_index) noexcept {
     // mark the link-chunk match
     if (verbose) {
         std::cout << "[EventTime " << currentTime << " ps] ";
-        std::cout << "Beam " << beam_index << ": " << "Chunk " << chunk << ": " << src << " -> " << dest << std::endl;
+        std::cout << "Beam " << beam_index << ": "
+                  << "Chunk " << chunk << ": " << src << " -> " << dest << std::endl;
     }
 
     // mark the synthesis result

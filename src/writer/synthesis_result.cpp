@@ -45,16 +45,16 @@ SynthesisResult::Time SynthesisResult::getCollectiveTime() const noexcept {
     return collectiveTime;
 }
 
-std::vector<std::tuple<SynthesisResult::ChunkID,SynthesisResult::Time>> SynthesisResult::getEgressLinkInfo(
-    const NpuID src, const NpuID dest) const noexcept {
+std::vector<std::tuple<SynthesisResult::ChunkID, SynthesisResult::Time>> SynthesisResult::
+    getEgressLinkInfo(const NpuID src, const NpuID dest) const noexcept {
     assert(0 <= src && src < npusCount);
     assert(0 <= dest && dest < npusCount);
 
     return npuResults[src].getEgressLinkInfo(dest);
 }
 
-std::vector<std::tuple<SynthesisResult::ChunkID,SynthesisResult::Time>> SynthesisResult::getIngressLinkInfo(
-    const NpuID src, const NpuID dest) const noexcept {
+std::vector<std::tuple<SynthesisResult::ChunkID, SynthesisResult::Time>> SynthesisResult::
+    getIngressLinkInfo(const NpuID src, const NpuID dest) const noexcept {
     assert(0 <= src && src < npusCount);
     assert(0 <= dest && dest < npusCount);
 
