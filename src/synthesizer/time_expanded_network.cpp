@@ -96,7 +96,7 @@ bool TimeExpandedNetwork::checkLinkAvailability(const NpuID src, const NpuID des
     // the start time of the current transmission does not overlap
     // with the end time of the previous transmission
     const auto linkDelay = topology->getLinkDelay(src, dest);
-    const signed int transmissionStartTime = currentTime - linkDelay;
+    const int64_t transmissionStartTime = currentTime - linkDelay;
 
     // transmission start time must be valid
     if (transmissionStartTime < 0) {
