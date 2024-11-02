@@ -1,5 +1,6 @@
 import csv
 import argparse
+import numpy as np
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -72,6 +73,7 @@ def main():
 
     # Calculate link crossing times (time to traverse each link)
     df['Link Time (ns)'] = df['Latency (ns)'] + (results["Chunk_Size"] / df['Bandwidth (GB/s=B/ns)'])
+    
     print(df["Link Time (ns)"])
 
     # Create network graph
@@ -87,9 +89,12 @@ def main():
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax)
 
     # Set up the slider
-    max_frame = int(results["Collective_Time"] / 1000)
+    max_ns = results["Collective_Time"] / 1000
+    frame_ns = max_ns/100
+    print(max_ns, frame_ns)
+
     ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03], facecolor="lightgrey")
-    slider = Slider(ax_slider, "Time (ms)", 0, max_frame/1000+1, valinit=0, valstep=1)
+    slider = Slider(ax_slider, "Time (ns)", 0, max_ns, valinit=0, valstep=frame_ns)
 
     # Animation setup
     chunk_positions = {edge: [] for edge in G.edges}
@@ -106,7 +111,7 @@ def main():
         nx.draw(G, pos, with_labels=True, ax=ax, node_size=500, font_size=10)
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax)
 
-        frame_ns = frame * 1000
+        frame_ns = frame
         arrived_chunks = {node: [] for node in G.nodes}
         for (src, dest), chunks in chunk_positions.items():
             for chunk_id, start_time_ns, arrival_time_ns in chunks:
@@ -127,7 +132,7 @@ def main():
         for dest in arrived_chunks:
             ax.text(pos[dest][0], pos[dest][1] - 0.05, f"{arrived_chunks[dest]}", color="red", fontsize=8, ha='center', verticalalignment='top')
 
-        ax.set_title(f"Network Animation - {frame_ns} ns")
+        ax.set_title(f"Network Animation - {frame_ns:.4f} ns")
         ax.axis("off")
 
         # Stop animation if the collective time has been reached
@@ -137,13 +142,13 @@ def main():
 
     # Function to handle slider updates
     def on_slider_change(val):
-        frame = int(slider.val)
+        frame = slider.val
         update(frame)
 
     slider.on_changed(on_slider_change)  # Update animation on slider change
 
     # Initialize animation
-    ani = animation.FuncAnimation(fig, update, frames=range(0, max_frame + 1), interval=50, repeat=False)
+    ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, max_ns, num=100), interval=50, repeat=False)
     plt.show()
 
 if __name__ == "__main__":
