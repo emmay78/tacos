@@ -125,8 +125,8 @@ def main():
         ax.axis("off")
 
         # Stop animation if the collective time has been reached
-        # if frame_ns >= results["Collective_Time"] / 1000:
-        #     ani.event_source.stop()
+        if frame_ns >= results["Collective_Time"] / 1000:
+            ani.event_source.stop()
 
     # Set up animation
     ani = animation.FuncAnimation(
