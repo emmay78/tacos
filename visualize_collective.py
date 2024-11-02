@@ -5,7 +5,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, Button
 
 def process_collective_algo(filename):
     data = {
@@ -74,8 +74,6 @@ def main():
     # Calculate link crossing times (time to traverse each link)
     df['Link Time (ns)'] = df['Latency (ns)'] + (results["Chunk_Size"] / df['Bandwidth (GB/s=B/ns)'])
     
-    print(df["Link Time (ns)"])
-
     # Create network graph
     G = nx.DiGraph()
     for _, row in df.iterrows():
@@ -90,11 +88,13 @@ def main():
 
     # Set up the slider
     max_ns = results["Collective_Time"] / 1000
-    frame_ns = max_ns/100
-    print(max_ns, frame_ns)
 
     ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03], facecolor="lightgrey")
-    slider = Slider(ax_slider, "Time (ns)", 0, max_ns, valinit=0, valstep=frame_ns)
+    slider = Slider(ax_slider, "Time (ns)", 0, max_ns, valinit=0, valstep=max_ns/100)
+
+    # Set up the play/pause button
+    ax_button = plt.axes([0.85, 0.05, 0.1, 0.04])
+    play_button = Button(ax_button, 'Play', color="lightgrey", hovercolor="0.8")
 
     # Animation setup
     chunk_positions = {edge: [] for edge in G.edges}
@@ -106,7 +106,17 @@ def main():
             start_time_ns = arrival_time_ns - link_time  # Calculate the departure time
             chunk_positions[(src, dest)].append((chunk_id, start_time_ns, arrival_time_ns))
 
+    is_playing = False
+    current_frame = 0
+    updating_slider = False
     def update(frame):
+        nonlocal current_frame, updating_slider
+        current_frame = frame  # Update current frame
+
+        if not updating_slider:
+            updating_slider = True  # Avoid recursive slider update
+            slider.set_val(frame)  # Sync slider with animation frame
+            updating_slider = False  # Reset flag after updating slider
         ax.clear()
         nx.draw(G, pos, with_labels=True, ax=ax, node_size=500, font_size=10)
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax)
@@ -140,12 +150,29 @@ def main():
             ani.event_source.stop()
 
 
-    # Function to handle slider updates
+    # Handle slider changes to update frame
     def on_slider_change(val):
-        frame = slider.val
-        update(frame)
+        nonlocal current_frame, is_playing
+        if not updating_slider:  # Prevent recursion
+            current_frame = slider.val
+            if not is_playing:
+                update(current_frame)
 
-    slider.on_changed(on_slider_change)  # Update animation on slider change
+    slider.on_changed(on_slider_change)
+
+    # Play/pause button click handling
+    def on_button_click(event):
+        nonlocal is_playing
+        if is_playing:
+            ani.event_source.stop()
+            play_button.label.set_text("Play")
+        else:
+            ani.frame_seq = ani.new_frame_seq()
+            ani.event_source.start()
+            play_button.label.set_text("Pause")
+        is_playing = not is_playing
+
+    play_button.on_clicked(on_button_click)
 
     # Initialize animation
     ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, max_ns, num=100), interval=50, repeat=False)
