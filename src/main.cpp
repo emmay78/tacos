@@ -52,12 +52,20 @@ int main(int argc, char* argv[]) {
     std::cout << " (" << chunkSizeMB << " MB)" << std::endl;
     std::cout << std::endl;
 
-    // instantiate synthesizer based on input arguments
-    std::unique_ptr<Synthesizer> synthesizer;
+
+    // create timer
+    auto timer = Timer();
+
+    // synthesize collective algorithm
+    std::cout << "[Synthesis Process]" << std::endl;
+
+    timer.start();
+    SynthesisResult synthesisResult(topology, collective);
     if (argc < 3) {
         // No beam argument: use Synthesizer
-        synthesizer = std::make_unique<Synthesizer>(topology, collective);
+        auto synthesizer = std::make_unique<Synthesizer>(topology, collective);
         std::cout << "[Using Synthesizer]" << std::endl;
+        synthesisResult = synthesizer->synthesize();  // Call synthesize on SynthesizerBase pointer
     } else {
         // Second argument provided: use BeamSynthesizer
         int beam_width;
@@ -67,18 +75,10 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error: Second argument must be an integer." << std::endl;
             return 1;
         }
-        synthesizer = std::make_unique<BeamSynthesizer>(topology, collective, beam_width);
+        auto synthesizer = std::make_unique<BeamSynthesizer>(topology, collective, beam_width);
         std::cout << "[Using BeamSynthesizer with beam width: " << beam_width << "]" << std::endl;
+        synthesisResult = synthesizer->synthesize();  // Call synthesize on SynthesizerBase pointer
     }
-
-    // create timer
-    auto timer = Timer();
-
-    // synthesize collective algorithm
-    std::cout << "[Synthesis Process]" << std::endl;
-
-    timer.start();
-    const auto synthesisResult = synthesizer->synthesize();  // Call synthesize on SynthesizerBase pointer
     timer.stop();
 
     std::cout << std::endl;
