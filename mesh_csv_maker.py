@@ -7,13 +7,13 @@ import re
 from typing import Optional, Tuple, List
 
 
-def create_mesh_csv_files(group_sizes: str, bad_bandwidth_proportions: str, output_dir: str = 'mesh_csvs') -> None:
+def create_mesh_csv_files(group_sizes: str, bad_magnitudes: str, output_dir: str = 'mesh_csvs') -> None:
     """
     Generates CSV files representing ring topologies with specified group sizes and proportions of bad bandwidth nodes.
 
     Args:
         group_sizes (str): The number of nodes in each group.
-        bad_bandwidth_proportions (str): The proportions of bad bandwidth nodes.
+        bad_magnitudes (str): The proportions of bad bandwidth nodes.
         output_dir (str): Directory where CSV files will be stored.
     """
     # Create the output directory if it doesn't exist
@@ -22,8 +22,8 @@ def create_mesh_csv_files(group_sizes: str, bad_bandwidth_proportions: str, outp
 
     # No need to split here as the arguments are already strings
     for group_size in map(int, group_sizes.split()):
-        for bad_bandwidth_proportion in map(float, bad_bandwidth_proportions.split()):
-            csv_filename = f"mesh_{group_size}_{bad_bandwidth_proportion}.csv"
+        for bad_magnitude in map(float, bad_magnitudes.split()):
+            csv_filename = f"mesh_{group_size}_{bad_magnitudes}.csv"
             csv_path = os.path.join(output_dir, csv_filename)
             
             with open(csv_path, 'w', newline='') as csvfile:
@@ -32,9 +32,9 @@ def create_mesh_csv_files(group_sizes: str, bad_bandwidth_proportions: str, outp
                 csvwriter.writerow(['Src', 'Dest', 'Latency (ns)', 'Bandwidth (GB/s)'])
                 
                 # Calculate the number of bad links based on the proportion
-                # num_bad_links = max(1, int(group_size * bad_bandwidth_proportion))
+                # num_bad_links = max(1, int(group_size * bad_magnitude))
                 # bad_links = random.sample(range(group_size), num_bad_links)
-                print(f"Generating CSV: {csv_filename} | Group Size: {group_size} | BW Proportion: {bad_bandwidth_proportion}")
+                print(f"Generating CSV: {csv_filename} | Group Size: {group_size} | BW Proportion: {bad_magnitude}")
 
                 # Create links between consecutive nodes
                 for i in range(group_size - 1):
@@ -44,6 +44,7 @@ def create_mesh_csv_files(group_sizes: str, bad_bandwidth_proportions: str, outp
                     # bandwidth = 1 if i in bad_links else 50  # Bad bandwidth
                     bandwidth  = 50 # good bandwidth
                     csvwriter.writerow([src, dest, latency, bandwidth])
+                    csvwriter.writerow([dest, src, latency, bandwidth])
                 
                 # Closing the ring by connecting the last node to the first
                 src = group_size - 1
@@ -51,6 +52,7 @@ def create_mesh_csv_files(group_sizes: str, bad_bandwidth_proportions: str, outp
                 latency = 500
                 bandwidth = 50
                 csvwriter.writerow([src, dest, latency, bandwidth])
+                csvwriter.writerow([dest, src, latency, bandwidth])
 
                 for i in range(group_size):
                     for j in range(group_size):
@@ -58,8 +60,9 @@ def create_mesh_csv_files(group_sizes: str, bad_bandwidth_proportions: str, outp
                             src = i
                             dest = j
                             latency = 500
-                            bandwidth = 50 * bad_bandwidth_proportion
+                            bandwidth = 50 / bad_magnitudes
                             csvwriter.writerow([src, dest, latency, bandwidth])
+                            csvwriter.writerow([dest, src, latency, bandwidth])
     
     print("CSV file generation completed.\n")
 
@@ -112,20 +115,20 @@ def run_command(command: List[str], cwd: Optional[str] = None) -> Tuple[Optional
 
 def get_file_parameters(filename: str) -> Tuple[str, str]:
     """
-    Extracts group_size and bad_bandwidth_proportion from the filename.
-    Assumes that the filename follows the pattern 'mesh_<group_size>_<bad_bandwidth_proportion>.csv'.
+    Extracts group_size and bad_magnitude from the filename.
+    Assumes that the filename follows the pattern 'mesh_<group_size>_<bad_magnitude>.csv'.
 
     Args:
         filename (str): The name of the file.
 
     Returns:
-        Tuple[str, str]: A tuple containing group_size and bad_bandwidth_proportion.
+        Tuple[str, str]: A tuple containing group_size and bad_magnitude.
     """
     match = re.match(r'mesh_(\d+)_(\d*\.?\d+)\.csv', filename)
     if match:
         group_size = match.group(1)
-        bad_bandwidth_proportion = match.group(2)
-        return group_size, bad_bandwidth_proportion
+        bad_magnitude = match.group(2)
+        return group_size, bad_magnitude
     else:
         return "N/A", "N/A"
 
@@ -147,7 +150,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'mesh_results.csv') -> 
 
     with open(output_csv, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['group_size', 'bad_bandwidth_proportion', 'algorithm', 'synthesis_time_ps'])
+        csvwriter.writerow(['group_size', 'bad_magnitude', 'algorithm', 'synthesis_time_ps'])
         print(f"Results will be written to '{output_csv}'.\n")
 
         for filename in sorted(os.listdir(input_dir)):
@@ -155,8 +158,8 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'mesh_results.csv') -> 
                 continue
 
             filepath = os.path.join(input_dir, filename)
-            group_size, bad_bandwidth_proportion = get_file_parameters(filename)
-            print(f"Processing File: {filename} | Group Size: {group_size} | Bad Bandwidth Proportion: {bad_bandwidth_proportion}")
+            group_size, bad_magnitude = get_file_parameters(filename)
+            print(f"Processing File: {filename} | Group Size: {group_size} | Bad Bandwidth Proportion: {bad_magnitude}")
 
             for algo in algorithms:
                 algo_name = algo["name"]
@@ -182,7 +185,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'mesh_results.csv') -> 
 
                     if synthesis_times:
                         best_time = min(synthesis_times)
-                        csvwriter.writerow([group_size, bad_bandwidth_proportion, algo_name, best_time])
+                        csvwriter.writerow([group_size, bad_magnitude, algo_name, best_time])
                         print(f"    Best Synthesis Time for '{algo_name}': {best_time} ps\n")
                     else:
                         print(f"    No valid synthesis times extracted for '{algo_name}' on '{filename}'.\n")
@@ -197,7 +200,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'mesh_results.csv') -> 
 
                     synthesis_time = extract_synthesis_time(stdout)
                     if synthesis_time is not None:
-                        csvwriter.writerow([group_size, bad_bandwidth_proportion, algo_name, synthesis_time])
+                        csvwriter.writerow([group_size, bad_magnitude, algo_name, synthesis_time])
                         print(f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} ps\n")
                     else:
                         print(f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.\n")
@@ -205,15 +208,15 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'mesh_results.csv') -> 
     print("All commands executed and results recorded.\n")
 
 
-def main(group_sizes: str, bad_bandwidth_proportions: str) -> None:
+def main(group_sizes: str, bad_magnitudes: str) -> None:
     """
     Main function to generate CSV files and process them with tacos.sh commands.
 
     Args:
         group_sizes (str): Space-separated string of group sizes.
-        bad_bandwidth_proportions (str): Space-separated string of bad bandwidth proportions.
+        bad_magnitudes (str): Space-separated string of bad bandwidth proportions.
     """
-    create_mesh_csv_files(group_sizes, bad_bandwidth_proportions)
+    create_mesh_csv_files(group_sizes, bad_magnitudes)
     run_tacos_commands('mesh_csvs')
 
 
@@ -232,9 +235,9 @@ if __name__ == "__main__":
         help="The number of nodes in each group (e.g., 5 10 15)"
     )
     parser.add_argument(
-        "bad_bandwidth_proportions",
+        "bad_magnitudes",
         type=str,
         help="The proportions of bad bandwidth nodes (e.g., 0.1 0.2 0.3)"
     )
     args = parser.parse_args()
-    main(args.group_sizes, args.bad_bandwidth_proportions)
+    main(args.group_sizes, args.bad_magnitudes)
