@@ -42,8 +42,9 @@ def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_
                         src = i
                         dest = i + 1
                         latency = 500  # in nanoseconds
-                        bandwidth = 1 if i in bad_links else 50  # Bad bandwidth
+                        bandwidth = 1 if i in bad_links else magnitude  # Bad bandwidth
                         csvwriter.writerow([src, dest, latency, bandwidth])
+                        csvwriter.writerow([dest, src, latency, bandwidth])
                     
                     # Closing the ring by connecting the last node to the first
                     src = group_size - 1
@@ -51,6 +52,7 @@ def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_
                     latency = 500
                     bandwidth = 1 if (group_size - 1) in bad_links else magnitude
                     csvwriter.writerow([src, dest, latency, bandwidth])
+                    csvwriter.writerow([dest, src, latency, bandwidth])
         
     print("CSV file generation completed.\n")
 
