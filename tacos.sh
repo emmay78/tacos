@@ -34,13 +34,13 @@ function run {
     
     # Run with the appropriate flag
     if [ "$greedy" = true ]; then
-        ./build/bin/tacos "$1" --greedy  # Run with filename and greedy flag
+        ./build/bin/tacos "$1" --greedy "$2" # Run with filename and greedy flag
     elif [ -n "$multiple" ]; then
-        ./build/bin/tacos "$1" --multiple "$multiple"  # Run with filename and multiple
+        ./build/bin/tacos "$1" --multiple "$multiple" "$2" # Run with filename and multiple
     elif [ -n "$beam" ]; then
-        ./build/bin/tacos "$1" --beam "$beam"  # Run with filename and beam
+        ./build/bin/tacos "$1" --beam "$beam" "$2" # Run with filename and beam
     else
-        ./build/bin/tacos "$1"  # Run with filename only
+        ./build/bin/tacos "$1" "$2" # Run with filename only
     fi
 }
 
@@ -70,6 +70,7 @@ filename=""
 beam=""
 multiple=""
 greedy=false
+verbose=false
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -91,6 +92,10 @@ while [[ "$#" -gt 0 ]]; do
             compile_chakra
             exit 0
             ;;
+
+        -v|--verbose)
+            verbose=true
+            ;;
         -r|--run)
             # Ensure filename is provided
             if [ -z "$filename" ]; then
@@ -98,7 +103,11 @@ while [[ "$#" -gt 0 ]]; do
                 print_help
                 exit 1
             fi
-            run "$filename"
+            if [ "$verbose" = true ]; then
+                run "$filename" "--verbose"
+            else
+                run "$filename"
+            fi
             exit 0
             ;;
         -f|--file)
@@ -154,7 +163,6 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
-
 # Ensure that filename is provided
 if [ -z "$filename" ]; then
     echo "Error: --file is required to run TACOS."
@@ -163,5 +171,9 @@ if [ -z "$filename" ]; then
 else
     compile_chakra
     compile
-    run "$filename"
+    if [ "$verbose" = true ]; then
+        run "$filename" "--verbose"
+    else
+        run "$filename"
+    fi
 fi

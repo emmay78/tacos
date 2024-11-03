@@ -40,6 +40,16 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    bool verbose = false;
+
+    // Loop through arguments to find --verbose
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--verbose") {
+            verbose = true;
+        }
+    }
+
     // set print precision
     fixed(std::cout);
     std::cout.precision(2);
@@ -81,17 +91,17 @@ int main(int argc, char* argv[]) {
     timer.start();
     SynthesisResult synthesisResult(topology, collective);
     std::string out_filename;
-    if (argc == 2) {
+    if ((argc == 3 && verbose) || (argc == 2 && !verbose)) {
         // No additional argument: use Synthesizer
-        auto synthesizer = std::make_unique<Synthesizer>(topology, collective);
+        auto synthesizer = std::make_unique<Synthesizer>(topology, collective, verbose);
         std::cout << "[Using Synthesizer]" << std::endl;
         synthesisResult = synthesizer->synthesize();
         out_filename = createOutfileName(argv[1],"tacos");
-    } else if (argc >= 3) {
+    } else if ((argc >= 4 && verbose) || (argc >= 3 && !verbose)) {
         std::string flag = argv[2];
         if (flag == "--greedy") {
             // GreedySynthesizer
-            auto synthesizer = std::make_unique<GreedySynthesizer>(topology, collective);
+            auto synthesizer = std::make_unique<GreedySynthesizer>(topology, collective, verbose);
             std::cout << "[Using GreedySynthesizer]" << std::endl;
             synthesisResult = synthesizer->synthesize();
             out_filename = createOutfileName(argv[1],"greedy");
@@ -106,7 +116,7 @@ int main(int argc, char* argv[]) {
                 std::cerr << "Error: Argument following " << flag << " must be an integer." << std::endl;
                 return 1;
             }
-            auto synthesizer = std::make_unique<MultipleSynthesizer>(topology, collective, num_beams);
+            auto synthesizer = std::make_unique<MultipleSynthesizer>(topology, collective, num_beams, verbose);
             std::cout << "[Using MultipleSynthesizer with factor: " << num_beams << "]" << std::endl;
             synthesisResult = synthesizer->synthesize();
             out_filename = createOutfileName(argv[1],"multiple_"+std::to_string(num_beams));
