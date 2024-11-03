@@ -7,7 +7,7 @@ import re
 from typing import Optional, Tuple, List
 
 
-def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, output_dir: str = 'ring_csvs') -> None:
+def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_magnitude: str, output_dir: str = 'ring_csvs') -> None:
     """
     Generates CSV files representing ring topologies with specified group sizes and proportions of bad bandwidth nodes.
 
@@ -21,36 +21,37 @@ def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, outp
     print(f"CSV files will be generated in the '{output_dir}' directory.")
 
     # No need to split here as the arguments are already strings
-    for group_size in map(int, group_sizes.split()):
-        for bad_bandwidth_proportion in map(float, bad_bandwidth_proportions.split()):
-            csv_filename = f"ring_{group_size}_{bad_bandwidth_proportion}.csv"
-            csv_path = os.path.join(output_dir, csv_filename)
-            
-            with open(csv_path, 'w', newline='') as csvfile:
-                csvwriter = csv.writer(csvfile)
-                csvwriter.writerow([group_size])
-                csvwriter.writerow(['Src', 'Dest', 'Latency (ns)', 'Bandwidth (GB/s)'])
+    for magnitude in bad_magnitude.split():
+        for group_size in map(int, group_sizes.split()):
+            for bad_bandwidth_proportion in map(float, bad_bandwidth_proportions.split()):
+                csv_filename = f"ring_{group_size}_{bad_bandwidth_proportion}.csv"
+                csv_path = os.path.join(output_dir, csv_filename)
                 
-                # Calculate the number of bad links based on the proportion
-                num_bad_links = max(1, int(group_size * bad_bandwidth_proportion))
-                bad_links = random.sample(range(group_size), num_bad_links)
-                print(f"Generating CSV: {csv_filename} | Group Size: {group_size} | Bad Links: {bad_links}")
+                with open(csv_path, 'w', newline='') as csvfile:
+                    csvwriter = csv.writer(csvfile)
+                    csvwriter.writerow([group_size])
+                    csvwriter.writerow(['Src', 'Dest', 'Latency (ns)', 'Bandwidth (GB/s)'])
+                    
+                    # Calculate the number of bad links based on the proportion
+                    num_bad_links = max(1, int(group_size * bad_bandwidth_proportion))
+                    bad_links = random.sample(range(group_size), num_bad_links)
+                    print(f"Generating CSV: {csv_filename} | Group Size: {group_size} | Bad Links: {bad_links}")
 
-                # Create links between consecutive nodes
-                for i in range(group_size - 1):
-                    src = i
-                    dest = i + 1
-                    latency = 500  # in nanoseconds
-                    bandwidth = 1 if i in bad_links else 50  # Bad bandwidth
+                    # Create links between consecutive nodes
+                    for i in range(group_size - 1):
+                        src = i
+                        dest = i + 1
+                        latency = 500  # in nanoseconds
+                        bandwidth = 1 if i in bad_links else 50  # Bad bandwidth
+                        csvwriter.writerow([src, dest, latency, bandwidth])
+                    
+                    # Closing the ring by connecting the last node to the first
+                    src = group_size - 1
+                    dest = 0
+                    latency = 500
+                    bandwidth = 1 if (group_size - 1) in bad_links else magnitude
                     csvwriter.writerow([src, dest, latency, bandwidth])
-                
-                # Closing the ring by connecting the last node to the first
-                src = group_size - 1
-                dest = 0
-                latency = 500
-                bandwidth = 1 if (group_size - 1) in bad_links else 50
-                csvwriter.writerow([src, dest, latency, bandwidth])
-    
+        
     print("CSV file generation completed.\n")
 
 
@@ -195,7 +196,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
     print("All commands executed and results recorded.\n")
 
 
-def main(group_sizes: str, bad_bandwidth_proportions: str) -> None:
+def main(group_sizes: str, bad_bandwidth_proportions: str, bad_magnitude: str) -> None:
     """
     Main function to generate CSV files and process them with tacos.sh commands.
 
@@ -203,7 +204,7 @@ def main(group_sizes: str, bad_bandwidth_proportions: str) -> None:
         group_sizes (str): Space-separated string of group sizes.
         bad_bandwidth_proportions (str): Space-separated string of bad bandwidth proportions.
     """
-    create_ring_csv_files(group_sizes, bad_bandwidth_proportions)
+    create_ring_csv_files(group_sizes, bad_bandwidth_proportions, bad_magnitude)
     run_tacos_commands('ring_csvs')
 
 
@@ -226,5 +227,10 @@ if __name__ == "__main__":
         type=str,
         help="The proportions of bad bandwidth nodes (e.g., 0.1 0.2 0.3)"
     )
+    parser.add_argument(
+        "bad_magnitude",
+        type=str,
+        help="The magnitude of bad bandwidth nodes (e.g., 5, 10, 50)"
+    )
     args = parser.parse_args()
-    main(args.group_sizes, args.bad_bandwidth_proportions)
+    main(args.group_sizes, args.bad_bandwidth_proportions, args.bad_magnitude)
