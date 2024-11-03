@@ -18,6 +18,7 @@ namespace tacos {
 class BeamSynthesizer {
   public:
     using Time = EventQueue::Time;
+    using StartTime = EventQueue::StartTime;
     using NpuID = Topology::NpuID;
     using ChunkID = Collective::ChunkID;
     using ChunkSize = Topology::ChunkSize;

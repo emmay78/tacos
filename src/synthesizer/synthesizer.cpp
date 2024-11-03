@@ -188,8 +188,11 @@ void Synthesizer::markLinkChunkMatch(const NpuID src,
         std::cout << "Chunk " << chunk << ": " << src << " -> " << dest << std::endl;
     }
 
+    const auto linkDelay = topology->getLinkDelay(src, dest);
+    const StartTime transmissionStartTime = currentTime - linkDelay;
+
     // mark the synthesis result
-    synthesisResult.markLinkChunkMatch(chunk, src, dest, currentTime);
+    synthesisResult.markLinkChunkMatch(chunk, src, dest, currentTime, transmissionStartTime);
 
     // mark the link as occupied
     ten.markLinkOccupied(src, dest);

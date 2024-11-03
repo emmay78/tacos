@@ -14,6 +14,7 @@ namespace tacos {
 class TimeExpandedNetwork {
   public:
     using Time = EventQueue::Time;
+    using StartTime = EventQueue::StartTime;
     using NpuID = Topology::NpuID;
 
     explicit TimeExpandedNetwork(std::shared_ptr<Topology> topology) noexcept;

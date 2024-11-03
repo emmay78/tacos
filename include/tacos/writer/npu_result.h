@@ -19,25 +19,32 @@ class NpuResult {
     using NpuID = Topology::NpuID;
     using ChunkID = Collective::ChunkID;
     using Time = Topology::Time;
+    using StartTime = Topology::StartTime;
 
     NpuResult(int npu,
               std::shared_ptr<Topology> topology,
               std::shared_ptr<Collective> collective) noexcept;
 
-    void addIngressLinkInfo(ChunkID chunk, NpuID src, Time currentTime) noexcept;
+    void addIngressLinkInfo(ChunkID chunk,
+                            NpuID src,
+                            Time currentTime,
+                            StartTime transmissionStartTime) noexcept;
 
-    void addEgressLinkInfo(ChunkID chunk, NpuID dest, Time currentTime) noexcept;
+    void addEgressLinkInfo(ChunkID chunk,
+                           NpuID dest,
+                           Time currentTime,
+                           StartTime transmissionStartTime) noexcept;
 
-    std::vector<std::tuple<ChunkID, Time>> getIngressLinkInfo(NpuID src) const noexcept;
+    std::vector<std::tuple<ChunkID, Time, StartTime>> getIngressLinkInfo(NpuID src) const noexcept;
 
-    std::vector<std::tuple<ChunkID, Time>> getEgressLinkInfo(NpuID dest) const noexcept;
+    std::vector<std::tuple<ChunkID, Time, StartTime>> getEgressLinkInfo(NpuID dest) const noexcept;
 
   private:
     int npu;
     int npusCount;
     int chunksCount;
-    std::map<NpuID, std::vector<std::tuple<ChunkID, Time>>> ingressLinksInfo;
-    std::map<NpuID, std::vector<std::tuple<ChunkID, Time>>> egressLinksInfo;
+    std::map<NpuID, std::vector<std::tuple<ChunkID, Time, StartTime>>> ingressLinksInfo;
+    std::map<NpuID, std::vector<std::tuple<ChunkID, Time, StartTime>>> egressLinksInfo;
 
     std::map<ChunkID, std::optional<int>> dependencyInfo;
 };

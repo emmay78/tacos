@@ -18,6 +18,7 @@ namespace tacos {
 class GreedySynthesizer {
   public:
     using Time = EventQueue::Time;
+    using StartTime = EventQueue::Time;
     using NpuID = Topology::NpuID;
     using ChunkID = Collective::ChunkID;
     using ChunkSize = Topology::ChunkSize;

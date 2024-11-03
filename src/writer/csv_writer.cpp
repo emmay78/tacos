@@ -91,12 +91,12 @@ void CsvWriter::writeLinkInfo(const NpuID src,
     }
 
     if (egressLinksInfo.size() == 1) {
-        csvFile << std::get<0>(egressLinksInfo[0]) << ":" << std::get<1>(egressLinksInfo[0]) << std::endl;
+        csvFile << std::get<0>(egressLinksInfo[0]) << ":" << std::get<1>(egressLinksInfo[0]) << ":" << std::get<2>(egressLinksInfo[0]) << std::endl;
         return;
     }
 
     for (auto i = 0; i < egressLinksInfo.size() - 1; i++) {
-        csvFile << std::get<0>(egressLinksInfo[i]) << ":" << std::get<1>(egressLinksInfo[i]) << ",";
+        csvFile << std::get<0>(egressLinksInfo[i]) << ":" << std::get<1>(egressLinksInfo[i]) << ":" << std::get<2>(egressLinksInfo[i]) << ",";
     }
-    csvFile << std::get<0>(egressLinksInfo.back()) << ":" << std::get<1>(egressLinksInfo.back()) << std::endl;
+    csvFile << std::get<0>(egressLinksInfo.back()) << ":" << std::get<1>(egressLinksInfo.back()) << ":" << std::get<2>(egressLinksInfo.back()) << std::endl;
 }

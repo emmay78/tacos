@@ -212,8 +212,11 @@ void MultipleSynthesizer::markLinkChunkMatch(const NpuID src,
         std::cout << "Beam " << beam_index << ": " << "Chunk " << chunk << ": " << src << " -> " << dest << std::endl;
     }
 
+    const auto linkDelay = topology->getLinkDelay(src, dest);
+    const StartTime transmissionStartTime = currentTime - linkDelay;
+
     // mark the synthesis result
-    beam_results[beam_index].markLinkChunkMatch(chunk, src, dest, currentTime);
+    beam_results[beam_index].markLinkChunkMatch(chunk, src, dest, currentTime, transmissionStartTime);
 
     // mark the link as occupied
     beam_tens[beam_index].markLinkOccupied(src, dest);

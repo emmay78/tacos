@@ -18,20 +18,25 @@ class SynthesisResult {
     using ChunkID = Collective::ChunkID;
     using ChunkSize = Collective::ChunkSize;
     using Time = EventQueue::Time;
+    using StartTime = EventQueue::StartTime;
 
     SynthesisResult(std::shared_ptr<Topology> topology,
                     std::shared_ptr<Collective> collective) noexcept;
 
-    void markLinkChunkMatch(ChunkID chunk, NpuID src, NpuID dest, Time currentTime) noexcept;
+    void markLinkChunkMatch(ChunkID chunk,
+                            NpuID src,
+                            NpuID dest,
+                            Time currentTime,
+                            const StartTime transmissionStartTime) noexcept;
 
     void setCollectiveTime(Time newCollectiveTime) noexcept;
 
     [[nodiscard]] Time getCollectiveTime() const noexcept;
 
-    [[nodiscard]] std::vector<std::tuple<ChunkID, Time>> getEgressLinkInfo(
+    [[nodiscard]] std::vector<std::tuple<ChunkID, Time, StartTime>> getEgressLinkInfo(
         NpuID src, NpuID dest) const noexcept;
 
-    [[nodiscard]] std::vector<std::tuple<ChunkID, Time>> getIngressLinkInfo(
+    [[nodiscard]] std::vector<std::tuple<ChunkID, Time, StartTime>> getIngressLinkInfo(
         NpuID src, NpuID dest) const noexcept;
 
   private:

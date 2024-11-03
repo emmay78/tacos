@@ -37,27 +37,33 @@ NpuResult::NpuResult(const int npu,
     }
 }
 
-void NpuResult::addIngressLinkInfo(ChunkID chunk, NpuID src, Time currentTime) noexcept {
+void NpuResult::addIngressLinkInfo(ChunkID chunk,
+                                   NpuID src,
+                                   Time currentTime,
+                                   const StartTime transmissionStartTime) noexcept {
     assert(0 <= chunk && chunk < chunksCount);
     assert(0 <= src && src < npusCount);
     assert(ingressLinksInfo.find(src) != ingressLinksInfo.end());
 
-    ingressLinksInfo[src].push_back(std::tuple<ChunkID, Time>(chunk, currentTime));
+    ingressLinksInfo[src].push_back(std::tuple<ChunkID, Time, StartTime>(chunk, currentTime, transmissionStartTime));
 
     // mark dependency info
     const auto opIdx = ingressLinksInfo[src].size() - 1;
     dependencyInfo[chunk] = opIdx;
 }
 
-void NpuResult::addEgressLinkInfo(ChunkID chunk, NpuID dest, Time currentTime) noexcept {
+void NpuResult::addEgressLinkInfo(ChunkID chunk,
+                                  NpuID dest,
+                                  Time currentTime,
+                                  const StartTime transmissionStartTime) noexcept {
     assert(0 <= chunk && chunk < chunksCount);
     assert(0 <= dest && dest < npusCount);
     assert(egressLinksInfo.find(dest) != egressLinksInfo.end());
 
-    egressLinksInfo[dest].push_back(std::tuple<ChunkID, Time>(chunk, currentTime));
+    egressLinksInfo[dest].push_back(std::tuple<ChunkID, Time, StartTime>(chunk, currentTime, transmissionStartTime));
 }
 
-std::vector<std::tuple<NpuResult::ChunkID, NpuResult::Time>> NpuResult::getIngressLinkInfo(
+std::vector<std::tuple<NpuResult::ChunkID, NpuResult::Time, NpuResult::StartTime>> NpuResult::getIngressLinkInfo(
     const NpuID src) const noexcept {
     assert(0 <= src && src < npusCount);
 
@@ -68,7 +74,7 @@ std::vector<std::tuple<NpuResult::ChunkID, NpuResult::Time>> NpuResult::getIngre
     return ingressLinksInfo.at(src);
 }
 
-std::vector<std::tuple<NpuResult::ChunkID, NpuResult::Time>> NpuResult::getEgressLinkInfo(
+std::vector<std::tuple<NpuResult::ChunkID, NpuResult::Time, NpuResult::StartTime>> NpuResult::getEgressLinkInfo(
     const NpuID dest) const noexcept {
     assert(0 <= dest && dest < npusCount);
 

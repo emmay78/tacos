@@ -18,6 +18,7 @@ class Topology {
 
   public:
     using Time = EventQueue::Time;
+    using StartTime = EventQueue::StartTime;
 
     using NpuID = int;
     using Latency = double;      // ns

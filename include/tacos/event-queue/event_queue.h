@@ -16,6 +16,7 @@ namespace tacos {
 class EventQueue {
   public:
     using Time = uint64_t;  // ps
+    using StartTime = int64_t;  // ps
 
     EventQueue() noexcept;
 
