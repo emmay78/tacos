@@ -116,7 +116,7 @@ void BeamSynthesizer::linkChunkMatching(int beam_index) noexcept {
 
         // among the sourceNpus, find the candidate sources
         const auto candidateSourceNpus =
-            checkCandidateSourceNpus(chunk, currentPrecondition, sourceNpus);
+            checkCandidateSourceNpus(chunk, currentPrecondition, sourceNpus, dest);
 
         // if there are no candidate source NPUs, skip
         if (candidateSourceNpus.empty()) {
@@ -132,7 +132,7 @@ void BeamSynthesizer::linkChunkMatching(int beam_index) noexcept {
 }
 
 std::pair<BeamSynthesizer::NpuID, BeamSynthesizer::ChunkID> BeamSynthesizer::selectPostcondition(
-    CollectiveCondition* const currentPostcondition) noexcept {
+    CollectivePostcondition* const currentPostcondition) noexcept {
     assert(currentPostcondition != nullptr);
     assert(!currentPostcondition->empty());
 
@@ -163,8 +163,9 @@ std::pair<BeamSynthesizer::NpuID, BeamSynthesizer::ChunkID> BeamSynthesizer::sel
 
 std::set<BeamSynthesizer::NpuID> BeamSynthesizer::checkCandidateSourceNpus(
     const ChunkID chunk,
-    const CollectiveCondition& currentPrecondition,
-    const std::set<NpuID>& sourceNpus) noexcept {
+    const CollectivePrecondition& currentPrecondition,
+    const std::set<NpuID>& sourceNpus,
+    const NpuID dest) noexcept {
     assert(0 <= chunk && chunk < chunksCount);
     assert(!currentPrecondition.empty());
     assert(!sourceNpus.empty());
@@ -173,9 +174,13 @@ std::set<BeamSynthesizer::NpuID> BeamSynthesizer::checkCandidateSourceNpus(
 
     // check which source NPUs hold the chunk
     for (const auto src : sourceNpus) {
+        const auto linkDelay = topology->getLinkDelay(src, dest);
+        const StartTime transmissionStartTime = currentTime - linkDelay;
         const auto chunksAtSrc = currentPrecondition.at(src);
-        if (chunksAtSrc.find(chunk) != chunksAtSrc.end()) {
-            candidateSourceNpus.insert(src);
+        for (const auto& [srcChunk, time] : chunksAtSrc) {
+            if (srcChunk == chunk && time <= transmissionStartTime) {
+                candidateSourceNpus.insert(src);
+            }
         }
     }
 
@@ -220,8 +225,10 @@ void BeamSynthesizer::markLinkChunkMatch(const NpuID src,
     // mark the link as occupied
     beam_tens[beam_index].markLinkOccupied(src, dest);
 
+    auto preconditionEntry = std::make_tuple(chunk, currentTime);
+
     // insert the chunk to the precondition
-    beam_preconditions[beam_index][dest].insert(chunk);
+    beam_preconditions[beam_index][dest].insert(preconditionEntry);
 
     // remove the chunk from the postcondition
     beam_postconditions[beam_index][dest].erase(chunk);

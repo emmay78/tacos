@@ -11,9 +11,9 @@ LICENSE file in the root directory of this source tree.
 using namespace tacos;
 
 MultipleSynthesizer::MultipleSynthesizer(const std::shared_ptr<Topology> topology,
-                         const std::shared_ptr<Collective> collective,
-                         const int num_beams,
-                         const bool verbose) noexcept
+                                         const std::shared_ptr<Collective> collective,
+                                         const int num_beams,
+                                         const bool verbose) noexcept
     : topology(topology),
       collective(collective),
       num_beams(num_beams),
@@ -55,13 +55,12 @@ SynthesisResult MultipleSynthesizer::synthesize() noexcept {
         currentTime = eventQueue.pop();
         std::cout << "\tCurrent Time: " << currentTime << std::endl;
         for (int i = 0; i < num_beams; i++) {
-            if(!synthesisCompleted(i)) {
+            if (!synthesisCompleted(i)) {
                 // update TEN current time
                 beam_tens[i].updateCurrentTime(currentTime);
                 // run link-chunk matching
                 linkChunkMatching(i);
-            }
-            else if (beam_results[i].getCollectiveTime()==0) {
+            } else if (beam_results[i].getCollectiveTime() == 0) {
                 beam_results[i].setCollectiveTime(currentTime);
             }
         }
@@ -73,25 +72,24 @@ SynthesisResult MultipleSynthesizer::synthesize() noexcept {
                         [this](int i) { return synthesisCompleted(i); })) {
             break;
         }
-        
+
         // if synthesis is not finished, schedule next events
         scheduleNextEvents();
     }
     assert(std::all_of(std::vector<int>(num_beams, 0).begin(), std::vector<int>(num_beams, 0).end(),
-                [this, n=0](int) mutable { return synthesisCompleted(n++); }));
+                       [this, n = 0](int) mutable { return synthesisCompleted(n++); }));
 
-    for(int i=0; i<num_beams; i++) {
-        if (beam_results[i].getCollectiveTime()==0) {
+    for (int i = 0; i < num_beams; i++) {
+        if (beam_results[i].getCollectiveTime() == 0) {
             beam_results[i].setCollectiveTime(currentTime);
         }
     }
 
     // return beam with smallest collective time
     return *std::min_element(beam_results.begin(), beam_results.end(),
-        [](const SynthesisResult& a, const SynthesisResult& b) {
-            return a.getCollectiveTime() < b.getCollectiveTime();
-        }
-    );
+                             [](const SynthesisResult& a, const SynthesisResult& b) {
+                                 return a.getCollectiveTime() < b.getCollectiveTime();
+                             });
 }
 
 void MultipleSynthesizer::scheduleNextEvents() noexcept {
@@ -118,7 +116,7 @@ void MultipleSynthesizer::linkChunkMatching(int beam_index) noexcept {
 
         // among the sourceNpus, find the candidate sources
         const auto candidateSourceNpus =
-            checkCandidateSourceNpus(chunk, currentPrecondition, sourceNpus);
+            checkCandidateSourceNpus(chunk, currentPrecondition, sourceNpus, dest);
 
         // if there are no candidate source NPUs, skip
         if (candidateSourceNpus.empty()) {
@@ -133,8 +131,8 @@ void MultipleSynthesizer::linkChunkMatching(int beam_index) noexcept {
     }
 }
 
-std::pair<MultipleSynthesizer::NpuID, MultipleSynthesizer::ChunkID> MultipleSynthesizer::selectPostcondition(
-    CollectiveCondition* const currentPostcondition) noexcept {
+std::pair<MultipleSynthesizer::NpuID, MultipleSynthesizer::ChunkID> MultipleSynthesizer::
+    selectPostcondition(CollectivePostcondition* const currentPostcondition) noexcept {
     assert(currentPostcondition != nullptr);
     assert(!currentPostcondition->empty());
 
@@ -165,8 +163,9 @@ std::pair<MultipleSynthesizer::NpuID, MultipleSynthesizer::ChunkID> MultipleSynt
 
 std::set<MultipleSynthesizer::NpuID> MultipleSynthesizer::checkCandidateSourceNpus(
     const ChunkID chunk,
-    const CollectiveCondition& currentPrecondition,
-    const std::set<NpuID>& sourceNpus) noexcept {
+    const CollectivePrecondition& currentPrecondition,
+    const std::set<NpuID>& sourceNpus,
+    const NpuID dest) noexcept {
     assert(0 <= chunk && chunk < chunksCount);
     assert(!currentPrecondition.empty());
     assert(!sourceNpus.empty());
@@ -175,9 +174,13 @@ std::set<MultipleSynthesizer::NpuID> MultipleSynthesizer::checkCandidateSourceNp
 
     // check which source NPUs hold the chunk
     for (const auto src : sourceNpus) {
+        const auto linkDelay = topology->getLinkDelay(src, dest);
+        const StartTime transmissionStartTime = currentTime - linkDelay;
         const auto chunksAtSrc = currentPrecondition.at(src);
-        if (chunksAtSrc.find(chunk) != chunksAtSrc.end()) {
-            candidateSourceNpus.insert(src);
+        for (const auto& [srcChunk, time] : chunksAtSrc) {
+            if (srcChunk == chunk && time <= transmissionStartTime) {
+                candidateSourceNpus.insert(src);
+            }
         }
     }
 
@@ -203,26 +206,30 @@ MultipleSynthesizer::NpuID MultipleSynthesizer::selectSourceNpu(
 }
 
 void MultipleSynthesizer::markLinkChunkMatch(const NpuID src,
-                                     const NpuID dest,
-                                     const ChunkID chunk,
-                                     int beam_index) noexcept {
+                                             const NpuID dest,
+                                             const ChunkID chunk,
+                                             int beam_index) noexcept {
     // mark the link-chunk match
     if (verbose) {
         std::cout << "[EventTime " << currentTime << " ps] ";
-        std::cout << "Beam " << beam_index << ": " << "Chunk " << chunk << ": " << src << " -> " << dest << std::endl;
+        std::cout << "Beam " << beam_index << ": "
+                  << "Chunk " << chunk << ": " << src << " -> " << dest << std::endl;
     }
 
     const auto linkDelay = topology->getLinkDelay(src, dest);
     const StartTime transmissionStartTime = currentTime - linkDelay;
 
     // mark the synthesis result
-    beam_results[beam_index].markLinkChunkMatch(chunk, src, dest, currentTime, transmissionStartTime);
+    beam_results[beam_index].markLinkChunkMatch(chunk, src, dest, currentTime,
+                                                transmissionStartTime);
 
     // mark the link as occupied
     beam_tens[beam_index].markLinkOccupied(src, dest);
 
+    auto preconditionEntry = std::make_tuple(chunk, currentTime);
+
     // insert the chunk to the precondition
-    beam_preconditions[beam_index][dest].insert(chunk);
+    beam_preconditions[beam_index][dest].insert(preconditionEntry);
 
     // remove the chunk from the postcondition
     beam_postconditions[beam_index][dest].erase(chunk);

@@ -22,7 +22,8 @@ class BeamSynthesizer {
     using NpuID = Topology::NpuID;
     using ChunkID = Collective::ChunkID;
     using ChunkSize = Topology::ChunkSize;
-    using CollectiveCondition = Collective::CollectiveCondition;
+    using CollectivePrecondition = Collective::CollectivePrecondition;
+    using CollectivePostcondition = Collective::CollectivePostcondition;
 
     BeamSynthesizer(std::shared_ptr<Topology> topology,
                 std::shared_ptr<Collective> collective,
@@ -46,8 +47,8 @@ class BeamSynthesizer {
     // beams
     int num_beams;
     std::vector<TimeExpandedNetwork> beam_tens;
-    std::vector<CollectiveCondition> beam_preconditions;
-    std::vector<CollectiveCondition> beam_postconditions;
+    std::vector<CollectivePrecondition> beam_preconditions;
+    std::vector<CollectivePostcondition> beam_postconditions;
     std::vector<SynthesisResult> beam_results;
 
     // topology link delays
@@ -62,12 +63,13 @@ class BeamSynthesizer {
     void linkChunkMatching(int beam_index) noexcept;
 
     [[nodiscard]] std::pair<NpuID, ChunkID> selectPostcondition(
-        CollectiveCondition* const currentPostcondition) noexcept;
+        CollectivePostcondition* const currentPostcondition) noexcept;
 
     [[nodiscard]] std::set<NpuID> checkCandidateSourceNpus(
         ChunkID chunk,
-        const CollectiveCondition& currentPrecondition,
-        const std::set<NpuID>& sourceNpus) noexcept;
+        const CollectivePrecondition& currentPrecondition,
+        const std::set<NpuID>& sourceNpus,
+        const NpuID dest) noexcept;
 
     [[nodiscard]] NpuID selectSourceNpu(const std::set<NpuID>& candidateSourceNpus) noexcept;
 

@@ -97,7 +97,7 @@ void GreedySynthesizer::linkChunkMatching() noexcept {
 
         // among the sourceNpus, find the candidate sources
         const auto candidateSourceNpus =
-            checkCandidateSourceNpus(chunk, currentPrecondition, sourceNpus);
+            checkCandidateSourceNpus(chunk, currentPrecondition, sourceNpus, dest);
 
         // if there are no candidate source NPUs, skip
         if (candidateSourceNpus.empty()) {
@@ -113,7 +113,7 @@ void GreedySynthesizer::linkChunkMatching() noexcept {
 }
 
 std::pair<GreedySynthesizer::NpuID, GreedySynthesizer::ChunkID> GreedySynthesizer::selectPostcondition(
-    CollectiveCondition* const currentPostcondition) noexcept {
+    Collective::CollectivePostcondition* const currentPostcondition) noexcept {
     assert(currentPostcondition != nullptr);
     assert(!currentPostcondition->empty());
 
@@ -144,8 +144,9 @@ std::pair<GreedySynthesizer::NpuID, GreedySynthesizer::ChunkID> GreedySynthesize
 
 std::set<GreedySynthesizer::NpuID> GreedySynthesizer::checkCandidateSourceNpus(
     const ChunkID chunk,
-    const CollectiveCondition& currentPrecondition,
-    const std::set<NpuID>& sourceNpus) noexcept {
+    const CollectivePrecondition& currentPrecondition,
+    const std::set<NpuID>& sourceNpus,
+    const NpuID dest) noexcept {
     assert(0 <= chunk && chunk < chunksCount);
     assert(!currentPrecondition.empty());
     assert(!sourceNpus.empty());
@@ -154,9 +155,13 @@ std::set<GreedySynthesizer::NpuID> GreedySynthesizer::checkCandidateSourceNpus(
 
     // check which source NPUs hold the chunk
     for (const auto src : sourceNpus) {
+        const auto linkDelay = topology->getLinkDelay(src, dest);
+        const StartTime transmissionStartTime = currentTime - linkDelay;
         const auto chunksAtSrc = currentPrecondition.at(src);
-        if (chunksAtSrc.find(chunk) != chunksAtSrc.end()) {
-            candidateSourceNpus.insert(src);
+        for (const auto& [srcChunk, time] : chunksAtSrc) {
+            if (srcChunk == chunk && time <= transmissionStartTime) {
+                candidateSourceNpus.insert(src);
+            }
         }
     }
 
@@ -169,9 +174,6 @@ GreedySynthesizer::NpuID GreedySynthesizer::selectSourceNpu(
 
     // if only one candidate source NPU, return it
     if (candidateSourceNpus.size() == 1) {
-        if (verbose) {
-            std::cout << "Candidate Source NPU: " << *candidateSourceNpus.begin() << std::endl;
-        }
         const auto firstCandidate = candidateSourceNpus.begin();
         return *firstCandidate;
     }
@@ -184,14 +186,6 @@ GreedySynthesizer::NpuID GreedySynthesizer::selectSourceNpu(
     }
     std::sort(linkDelays.begin(), linkDelays.end(),
               [](const auto& a, const auto& b) { return a.second > b.second; });
-
-    if (verbose) {
-        std::cout << "Candidate Source NPUs [sorted]: ";
-        for (const auto& [src, delay] : linkDelays) {
-            std::cout << src << " -> " << dest << " (" << delay << " ps) ";
-        }
-        std::cout << std::endl;
-    }
 
     // return the Nth best candidate source NPU
     const auto bestCandidate = linkDelays[N].first;
@@ -216,8 +210,10 @@ void GreedySynthesizer::markLinkChunkMatch(const NpuID src,
     // mark the link as occupied
     ten.markLinkOccupied(src, dest);
 
+    auto preconditionEntry = std::make_tuple(chunk, currentTime);
+
     // insert the chunk to the precondition
-    precondition[dest].insert(chunk);
+    precondition[dest].insert(preconditionEntry);
 
     // remove the chunk from the postcondition
     postcondition[dest].erase(chunk);

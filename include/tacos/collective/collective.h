@@ -15,8 +15,10 @@ class Collective {
     using ChunkID = int;
     using ChunkSize = Topology::ChunkSize;
     using NpuID = Topology::NpuID;
-
-    using CollectiveCondition = std::map<NpuID, std::set<ChunkID>>;
+    using Time = Topology::Time;
+    
+    using CollectivePrecondition = std::map<NpuID, std::set<std::tuple<ChunkID, Time>>>;
+    using CollectivePostcondition = std::map<NpuID, std::set<ChunkID>>;
 
     Collective(int npusCount, ChunkSize chunkSize) noexcept;
 
@@ -24,9 +26,9 @@ class Collective {
 
     [[nodiscard]] int getChunksCount() const noexcept;
 
-    [[nodiscard]] CollectiveCondition getPrecondition() const noexcept;
+    [[nodiscard]] CollectivePrecondition getPrecondition() const noexcept;
 
-    [[nodiscard]] CollectiveCondition getPostcondition() const noexcept;
+    [[nodiscard]] CollectivePostcondition getPostcondition() const noexcept;
 
     [[nodiscard]] bool synthesisCompleted() const noexcept;
 
@@ -42,8 +44,8 @@ class Collective {
     ChunkSize chunkSize;
 
     std::set<ChunkID> chunks = {};
-    CollectiveCondition precondition = {};
-    CollectiveCondition postcondition = {};
+    CollectivePrecondition precondition = {};
+    CollectivePostcondition postcondition = {};
 };
 
 }  // namespace tacos

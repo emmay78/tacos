@@ -27,7 +27,7 @@ void Collective::add(const ChunkID chunkID, const NpuID src, const NpuID dest) n
     assert(0 <= dest && dest < npusCount);
 
     chunks.insert(chunkID);
-    precondition[src].insert(chunkID);
+    precondition[src].emplace(chunkID, 0);
     postcondition[dest].insert(chunkID);
 }
 
@@ -43,10 +43,10 @@ int Collective::getChunksCount() const noexcept {
     return chunksCount;
 }
 
-Collective::CollectiveCondition Collective::getPrecondition() const noexcept {
+Collective::CollectivePrecondition Collective::getPrecondition() const noexcept {
     return precondition;
 }
 
-Collective::CollectiveCondition Collective::getPostcondition() const noexcept {
+Collective::CollectivePostcondition Collective::getPostcondition() const noexcept {
     return postcondition;
 }
