@@ -46,8 +46,9 @@ def process_collective_algo(filename):
                 for chunk in row[4:]:
                     if chunk == "None":
                         break
-                    chunk_id, arrival_time_ps = chunk.split(":")
-                    arrival_time_ns = int(arrival_time_ps) / 1000  # Convert ps to ns
+                    chunk_id, arrival_time_ps, _ = chunk.split(":")
+                    arrival_time_ns = int(
+                        arrival_time_ps) / 1000  # Convert ps to ns
                     chunks.append((int(chunk_id), arrival_time_ns))
 
                 connection = {
@@ -105,11 +106,13 @@ def main():
     max_ns = results["Collective_Time"] / 1000
 
     ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03], facecolor="lightgrey")
-    slider = Slider(ax_slider, "Time (ns)", 0, max_ns, valinit=0, valstep=max_ns / 100)
+    slider = Slider(ax_slider, "Time (ns)", 0, max_ns,
+                    valinit=0, valstep=max_ns / 100)
 
     # Set up the play/pause button
     ax_button = plt.axes([0.85, 0.05, 0.1, 0.04])
-    play_button = Button(ax_button, "Play", color="lightgrey", hovercolor="0.8")
+    play_button = Button(
+        ax_button, "Play", color="lightgrey", hovercolor="0.8")
 
     # Animation setup
     chunk_positions = {edge: [] for edge in G.edges}
@@ -146,10 +149,13 @@ def main():
                 # Start moving the chunk only after its calculated departure time
                 if start_time_ns <= frame_ns < arrival_time_ns:
                     move_pos = min(
-                        1, (frame_ns - start_time_ns) / G[src][dest]["link_time"]
+                        1, (frame_ns - start_time_ns) /
+                        G[src][dest]["link_time"]
                     )
-                    chunk_x = (1 - move_pos) * pos[src][0] + move_pos * pos[dest][0]
-                    chunk_y = (1 - move_pos) * pos[src][1] + move_pos * pos[dest][1]
+                    chunk_x = (1 - move_pos) * \
+                        pos[src][0] + move_pos * pos[dest][0]
+                    chunk_y = (1 - move_pos) * \
+                        pos[src][1] + move_pos * pos[dest][1]
 
                     # Plot the moving chunk with label
                     ax.plot(chunk_x, chunk_y, "o", color="red", markersize=5)
