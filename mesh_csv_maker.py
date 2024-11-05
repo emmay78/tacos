@@ -216,8 +216,9 @@ def main(group_sizes: str, bad_magnitudes: str) -> None:
         group_sizes (str): Space-separated string of group sizes.
         bad_magnitudes (str): Space-separated string of bad bandwidth proportions.
     """
-    create_mesh_csv_files(group_sizes, bad_magnitudes)
-    run_tacos_commands('mesh_csvs')
+    mesh_csvs_directory_name = f"mesh_csvs_g{group_sizes}_b{bad_magnitudes}.csv"
+    create_mesh_csv_files(group_sizes, bad_magnitudes, mesh_csvs_directory_name)
+    run_tacos_commands(mesh_csvs_directory_name, f"mesh_results_g{group_sizes}_b{bad_magnitudes}.csv")
 
 
 if __name__ == "__main__":
