@@ -7,7 +7,7 @@ import re
 from typing import Optional, Tuple, List
 
 
-def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_magnitude: str, output_dir: str = 'ring_csvs') -> None:
+def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_magnitudes: str, output_dir: str = 'ring_csvs') -> None:
     """
     Generates CSV files representing ring topologies with specified group sizes and proportions of bad bandwidth nodes.
 
@@ -21,10 +21,10 @@ def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_
     print(f"CSV files will be generated in the '{output_dir}' directory.")
 
     # No need to split here as the arguments are already strings
-    for magnitude in bad_magnitude.split():
+    for magnitude in map(int, bad_magnitudes.split()):
         for group_size in map(int, group_sizes.split()):
             for bad_bandwidth_proportion in map(float, bad_bandwidth_proportions.split()):
-                csv_filename = f"ring_{group_size}_{bad_bandwidth_proportion}.csv"
+                csv_filename = f"ring_{group_size}_{bad_bandwidth_proportion}_{magnitude}.csv"
                 csv_path = os.path.join(output_dir, csv_filename)
                 
                 with open(csv_path, 'w', newline='') as csvfile:
@@ -35,14 +35,14 @@ def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_
                     # Calculate the number of bad links based on the proportion
                     num_bad_links = max(1, int(group_size * bad_bandwidth_proportion))
                     bad_links = random.sample(range(group_size), num_bad_links)
-                    print(f"Generating CSV: {csv_filename} | Group Size: {group_size} | Bad Links: {bad_links}")
+                    print(f"Generating CSV: {csv_filename} | Group Size: {group_size} | Bad Links: {bad_links} | Bad Magnitude: {magnitude}")
 
                     # Create links between consecutive nodes
                     for i in range(group_size - 1):
                         src = i
                         dest = i + 1
                         latency = 500  # in nanoseconds
-                        bandwidth = 1 if i in bad_links else magnitude  # Bad bandwidth
+                        bandwidth = 1 if i not in bad_links else magnitude  # Bad bandwidth
                         csvwriter.writerow([src, dest, latency, bandwidth])
                         csvwriter.writerow([dest, src, latency, bandwidth])
                     
@@ -50,7 +50,7 @@ def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_
                     src = group_size - 1
                     dest = 0
                     latency = 500
-                    bandwidth = 1 if (group_size - 1) in bad_links else magnitude
+                    bandwidth = 1 if (group_size - 1) not in bad_links else magnitude
                     csvwriter.writerow([src, dest, latency, bandwidth])
                     csvwriter.writerow([dest, src, latency, bandwidth])
         
@@ -103,7 +103,7 @@ def run_command(command: List[str], cwd: Optional[str] = None) -> Tuple[Optional
         return None, None
 
 
-def get_file_parameters(filename: str) -> Tuple[str, str]:
+def get_file_parameters(filename: str) -> Tuple[str, str, str]:
     """
     Extracts group_size and bad_bandwidth_proportion from the filename.
     Assumes that the filename follows the pattern 'ring_<group_size>_<bad_bandwidth_proportion>.csv'.
@@ -114,13 +114,14 @@ def get_file_parameters(filename: str) -> Tuple[str, str]:
     Returns:
         Tuple[str, str]: A tuple containing group_size and bad_bandwidth_proportion.
     """
-    match = re.match(r'ring_(\d+)_(\d*\.?\d+)\.csv', filename)
+    match = re.match(r'ring_(\d+)_(\d*\.?\d*)_(\d*\.?\d*)\.csv', filename)
     if match:
         group_size = match.group(1)
         bad_bandwidth_proportion = match.group(2)
-        return group_size, bad_bandwidth_proportion
+        magnitude = match.group(3)
+        return group_size, bad_bandwidth_proportion, magnitude
     else:
-        return "N/A", "N/A"
+        return "N/A", "N/A", "N/A"
 
 
 def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> None:
@@ -140,7 +141,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
 
     with open(output_csv, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['group_size', 'bad_bandwidth_proportion', 'algorithm', 'synthesis_time_ps'])
+        csvwriter.writerow(['group_size', 'bad_bandwidth_proportion', 'bad_magnitude','algorithm', 'synthesis_time_ps', ])
         print(f"Results will be written to '{output_csv}'.\n")
 
         for filename in sorted(os.listdir(input_dir)):
@@ -148,8 +149,8 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
                 continue
 
             filepath = os.path.join(input_dir, filename)
-            group_size, bad_bandwidth_proportion = get_file_parameters(filename)
-            print(f"Processing File: {filename} | Group Size: {group_size} | Bad Bandwidth Proportion: {bad_bandwidth_proportion}")
+            group_size, bad_bandwidth_proportion, magnitude = get_file_parameters(filename)
+            print(f"Processing File: {filename} | Group Size: {group_size} | Bad Bandwidth Proportion: {bad_bandwidth_proportion} | Bad Magnitude: {magnitude}")
 
             for algo in algorithms:
                 algo_name = algo["name"]
@@ -175,7 +176,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
 
                     if synthesis_times:
                         best_time = min(synthesis_times)
-                        csvwriter.writerow([group_size, bad_bandwidth_proportion, algo_name, best_time])
+                        csvwriter.writerow([group_size, bad_bandwidth_proportion, magnitude,algo_name, best_time])
                         print(f"    Best Synthesis Time for '{algo_name}': {best_time} ps\n")
                     else:
                         print(f"    No valid synthesis times extracted for '{algo_name}' on '{filename}'.\n")
@@ -190,7 +191,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
 
                     synthesis_time = extract_synthesis_time(stdout)
                     if synthesis_time is not None:
-                        csvwriter.writerow([group_size, bad_bandwidth_proportion, algo_name, synthesis_time])
+                        csvwriter.writerow([group_size, bad_bandwidth_proportion, magnitude, algo_name, synthesis_time])
                         print(f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} ps\n")
                     else:
                         print(f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.\n")
@@ -198,7 +199,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
     print("All commands executed and results recorded.\n")
 
 
-def main(group_sizes: str, bad_bandwidth_proportions: str, bad_magnitude: str) -> None:
+def main(group_sizes: str, bad_bandwidth_proportions: str, bad_magnitudes: str) -> None:
     """
     Main function to generate CSV files and process them with tacos.sh commands.
 
@@ -206,8 +207,9 @@ def main(group_sizes: str, bad_bandwidth_proportions: str, bad_magnitude: str) -
         group_sizes (str): Space-separated string of group sizes.
         bad_bandwidth_proportions (str): Space-separated string of bad bandwidth proportions.
     """
-    create_ring_csv_files(group_sizes, bad_bandwidth_proportions, bad_magnitude)
-    run_tacos_commands('ring_csvs')
+    directory = f"ringcsvs_g{group_sizes}_b{bad_bandwidth_proportions}_m{bad_magnitudes}"
+    create_ring_csv_files(group_sizes, bad_bandwidth_proportions, bad_magnitudes, directory)
+    run_tacos_commands(directory, f"ring_results_g{group_sizes}_b{bad_bandwidth_proportions}_m{bad_magnitudes}.csv")
 
 
 if __name__ == "__main__":
@@ -230,9 +232,9 @@ if __name__ == "__main__":
         help="The proportions of bad bandwidth nodes (e.g., 0.1 0.2 0.3)"
     )
     parser.add_argument(
-        "bad_magnitude",
+        "bad_magnitudes",
         type=str,
-        help="The magnitude of bad bandwidth nodes (e.g., 5, 10, 50)"
+        help="The magnitudes of bad bandwidth nodes (e.g., 5, 10, 50)"
     )
     args = parser.parse_args()
-    main(args.group_sizes, args.bad_bandwidth_proportions, args.bad_magnitude)
+    main(args.group_sizes, args.bad_bandwidth_proportions, args.bad_magnitudes)

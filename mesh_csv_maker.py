@@ -34,7 +34,7 @@ def create_mesh_csv_files(group_sizes: str, bad_magnitudes: str, output_dir: str
                 # Calculate the number of bad links based on the proportion
                 # num_bad_links = max(1, int(group_size * bad_magnitude))
                 # bad_links = random.sample(range(group_size), num_bad_links)
-                print(f"Generating CSV: {csv_filename} | Group Size: {group_size} | BW Proportion: {bad_magnitude}")
+                print(f"Generating CSV: {csv_filename} | Group Size: {group_size} | Bad Magnitude: {bad_magnitude}")
 
                 # Create links between consecutive nodes
                 for i in range(group_size - 1):
@@ -60,7 +60,7 @@ def create_mesh_csv_files(group_sizes: str, bad_magnitudes: str, output_dir: str
                             src = i
                             dest = j
                             latency = 500
-                            bandwidth = 50 / bad_magnitudes
+                            bandwidth = 50 / bad_magnitude
                             csvwriter.writerow([src, dest, latency, bandwidth])
                             csvwriter.writerow([dest, src, latency, bandwidth])
     
