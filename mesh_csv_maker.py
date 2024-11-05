@@ -23,7 +23,7 @@ def create_mesh_csv_files(group_sizes: str, bad_magnitudes: str, output_dir: str
     # No need to split here as the arguments are already strings
     for group_size in map(int, group_sizes.split()):
         for bad_magnitude in map(float, bad_magnitudes.split()):
-            csv_filename = f"mesh_{group_size}_{bad_magnitudes}.csv"
+            csv_filename = f"mesh_{group_size}_{bad_magnitude}.csv"
             csv_path = os.path.join(output_dir, csv_filename)
             
             with open(csv_path, 'w', newline='') as csvfile:
