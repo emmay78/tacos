@@ -1,0 +1,4 @@
+group_size,bad_magnitude,algorithm,synthesis_time_ps
+4,5,random,60093750
+4,5,greedy,60093750
+4,5,multiple_5,60093750

@@ -226,8 +226,7 @@ if __name__ == "__main__":
         description=(
             "This script generates ring topology CSV files based on given group sizes and proportions "
             "of bad bandwidth nodes. It then executes the 'tacos.sh' script with various algorithms on "
-            "each CSV file, extracts the synthesized collective time, and compiles the results into "
-            "'mesh_results.csv'."
+            "each CSV file, extracts the synthesized collective time, and compiles the results "
         )
     )
     parser.add_argument(
