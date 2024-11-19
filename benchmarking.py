@@ -61,7 +61,7 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
                     src = i
                     dest = i + 1
                     latency = 500  # in nanoseconds
-                    bandwidth = 1 if i in second_direction else bm  # Bad bandwidth
+                    bandwidth = 1 if i + gs in second_direction else bm  # Bad bandwidth
                     csvwriter.writerow([dest, src, latency, bandwidth])
                 
                 # Closing the ring by connecting the last node to the first
