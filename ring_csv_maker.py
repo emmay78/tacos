@@ -54,7 +54,7 @@ def create_ring_csv_files(group_sizes: str, bad_bandwidth_proportions: str, bad_
                     csvwriter.writerow([src, dest, latency, bandwidth])
                     csvwriter.writerow([dest, src, latency, bandwidth])
         
-    print("CSV file generation completed.\n")
+    print("CSV file generations completed.\n")
 
 
 def extract_synthesis_time(output: str) -> Optional[int]:
