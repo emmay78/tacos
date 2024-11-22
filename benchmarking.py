@@ -9,6 +9,7 @@ import itertools
 from tqdm import tqdm
 from pprint import pprint
 import math
+import time
 
 def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
     # Create the output directory if it doesn't exist
@@ -238,9 +239,11 @@ def run_tacos_commands(params_list: List[str], input_dir: str, output_csv: str =
         {"name": "greedy", "args": ["--greedy", "--run"]},
         {"name": "multiple_5", "args": ["--multiple", "5", "--run"]}
     ]
-    print("OUTPUT_CSV" , output_csv)
-    output_csv = os.path.join("final_results", output_csv)
-    os.makedirs("final_results", exist_ok=True)
+
+    now_str = time.strftime("%Y%m%d-%H%M%S")
+    os.mkdir(now_str)
+    output_csv = os.path.join(now_str, output_csv)
+
     with open(output_csv, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(params_list)
