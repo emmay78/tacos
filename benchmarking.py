@@ -12,8 +12,6 @@ import math
 
 def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
     # Create the output directory if it doesn't exist
-    output_dir = output_dir.replace('topology', '')
-    output_dir = "./csvs/" + output_dir
     os.makedirs(output_dir, exist_ok=True)
     print(f"CSV files will be generated in the '{output_dir}' directory.") 
     topology = params['topology']
@@ -175,7 +173,6 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(['group_size', 'bad_bandwidth_proportion', 'bad_magnitude','algorithm', 'synthesis_time_ps', ])
         print(f"Results will be written to '{output_csv}'.\n")
-
         for filename in sorted(os.listdir(input_dir)):
             if not filename.endswith('.csv'):
                 continue
@@ -311,7 +308,6 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
         {"name": "greedy", "args": ["--greedy", "--run"]},
         {"name": "multiple_5", "args": ["--multiple", "5", "--run"]}
     ]
-    input_dir = "./csvs/" + input_dir
     params = get_file_parameters(input_dir)
     with open(output_csv, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
@@ -320,8 +316,8 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
             header_row.append(key)
         csvwriter.writerow(header_row)
         print(f"Results will be written to '{output_csv}'.\n")
-        input_dir = input_dir.replace('topology', '')
-
+        print(sorted(os.listdir(input_dir)))
+        print("input_dir: ", input_dir)
         for filename in sorted(os.listdir(input_dir)):
             if not filename.endswith('.csv'):
                 continue
@@ -393,9 +389,10 @@ def main(params: Dict[str, List[Any]]) -> None:
     """
     Main function to generate CSV files and process them with tacos.sh commands.
     """
-    directory = f"{params['topology']}csvs"
+    directory =  os.path.join("csvs", f"{params['topology']}") 
     for key, value in params.items(): 
-        directory += f"_{key}{value}"
+        if key != 'topology':
+            directory += f"_{key}{value}"
     create_csv_files(directory, params)
     # run_tacos_commands(directory, f"ring_results_g{group_sizes}_b{bad_bandwidth_proportions}_m{bad_magnitudes}.csv")
     run_tacos_commands(directory)
