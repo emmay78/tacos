@@ -19,11 +19,12 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
     del params['topology']
     # NOTE: order of params is important 
     # current order: gs, bm, bbp
-    key_order = ['gs', 'bm', 'bbp']
+    key_order = ['gs', 'bm', 'bbp', 'ls']
     params_values = [params.get(key, [None]) for key in key_order]
     print(params_values)
     print(list(itertools.product(*params_values)))
-    for gs, bm, bbp in itertools.product(*params_values):
+    ls = params_values[3]
+    for gs, bm, bbp, _ in itertools.product(*params_values):
         if topology == 'ring': # Bidirectional ring
             csv_filename = f"ring_gs{gs}_bm{bm}_bbp{bbp}.csv"
             csv_path = os.path.join(output_dir, csv_filename)
@@ -112,46 +113,50 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
                             csvwriter.writerow([src, dest, latency, bandwidth])
                             csvwriter.writerow([dest, src, latency, bandwidth])
         elif topology == 'hierarchical':
-            csv_filename = f"hierarchical_gs{gs}_bm{bm}.csv"
+            csv_filename = f"hierarchical_ls{ls}_bm{bm}_bbp{bbp}.csv"
             csv_path = os.path.join(output_dir, csv_filename)
             
             with open(csv_path, 'w', newline='') as csvfile:
                 csvwriter = csv.writer(csvfile)
-                csvwriter.writerow([gs])
+                csvwriter.writerow([ls])
                 csvwriter.writerow(['Src', 'Dest', 'Latency (ns)', 'Bandwidth (GB/s)'])
                 
                 # Calculate the number of bad links based on the proportion
                 # num_bad_links = max(1, int(gs * bm))
                 # bad_links = random.sample(range(gs), num_bad_links)
-                print(f"Generating CSV: {csv_filename} | Group Size: {gs} | Bad Magnitude: {bm}")
-
-                # Create links between consecutive nodes
-                for i in range(gs - 1):
-                    src = i
-                    dest = i + 1
-                    latency = 500  # in nanoseconds
-                    # bandwidth = 1 if i in bad_links else 50  # Bad bandwidth
-                    bandwidth  = bm # good bandwidth
-                    csvwriter.writerow([src, dest, latency, bandwidth])
-                    csvwriter.writerow([dest, src, latency, bandwidth])
+                print(f"Generating CSV: {csv_filename} | Layer Sizes: {ls} | Bad Magnitude: {bm} | Bad Bandwidth Proportion: {bbp}")
+                layers = []
+                counter = 0  # Initialize a counter to keep track of node numbers
+                for layer_size in ls:
+                    layer_nodes = list(range(counter, counter + layer_size))
+                    layers.append(layer_nodes)
+                    counter += layer_size  # Update counter for the next layer
                 
-                # Closing the ring by connecting the last node to the first
-                src = gs - 1
-                dest = 0
-                latency = 500
-                bandwidth = bm
-                csvwriter.writerow([src, dest, latency, bandwidth])
-                csvwriter.writerow([dest, src, latency, bandwidth])
-
-                for i in range(gs):
-                    for j in range(gs):
-                        if i != j and abs(i-j) != 1:
-                            src = i
-                            dest = j
+                # Create links between consecutive layers and between layers
+                for i in range(len(layers) - 1):
+                    current_nodes = layers[i]
+                    next_nodes = layers[i+1]
+                    size = len(next_nodes) // len(current_nodes)
+                    remainder = len(next_nodes) % len(current_nodes)
+                    for node in current_nodes:
+                        src = node
+                        for j in range(size):
+                            dest = next_nodes[j]
                             latency = 500
-                            bandwidth = 1
+                            bandwidth = bm
                             csvwriter.writerow([src, dest, latency, bandwidth])
                             csvwriter.writerow([dest, src, latency, bandwidth])
+                    if remainder: 
+                        for j in range(remainder): 
+                            src = current_nodes[-1]
+                            counter += 1
+                            dest = next_nodes[counter]
+                            latency = 500
+                            bandwidth = bm
+                            csvwriter.writerow([src, dest, latency, bandwidth])
+                            csvwriter.writerow([dest, src, latency, bandwidth])
+
+                
         print(f"CSV file '{csv_filename}' has been generated.")
     return None
 
@@ -350,6 +355,8 @@ if __name__ == "__main__":
     # gs = group sizes
     # bm = bad magnitudes
     # bbp = bad bandwidth proportions
+    # ls = layer sizes e.g. [1,4,16] means Layer 0 has 1 node, Layer 1 has 4 nodes, 
+    #       and Layer 2 has 16 nodes
     parser.add_argument(
         "--topology", 
         type=str,
@@ -373,6 +380,12 @@ if __name__ == "__main__":
         type=float,
         nargs='+',
         help="The proportions of bad bandwidth nodes (e.g., 0.1 0.2 0.3)"
+    )
+    parser.add_argument(
+        "--ls",
+        type=int,
+        nargs='+',
+        help="The number of nodes in each layer (e.g., 1 4 16)"
     )
     # NOTE: can add more arguments in a similar format as above as needed
     
