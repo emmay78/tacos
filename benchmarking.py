@@ -112,6 +112,47 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
                             bandwidth = 1
                             csvwriter.writerow([src, dest, latency, bandwidth])
                             csvwriter.writerow([dest, src, latency, bandwidth])
+        elif topology == 'hierarchical':
+            csv_filename = f"hierarchical_gs{gs}_bm{bm}.csv"
+            csv_path = os.path.join(output_dir, csv_filename)
+            
+            with open(csv_path, 'w', newline='') as csvfile:
+                csvwriter = csv.writer(csvfile)
+                csvwriter.writerow([gs])
+                csvwriter.writerow(['Src', 'Dest', 'Latency (ns)', 'Bandwidth (GB/s)'])
+                
+                # Calculate the number of bad links based on the proportion
+                # num_bad_links = max(1, int(gs * bm))
+                # bad_links = random.sample(range(gs), num_bad_links)
+                print(f"Generating CSV: {csv_filename} | Group Size: {gs} | Bad Magnitude: {bm}")
+
+                # Create links between consecutive nodes
+                for i in range(gs - 1):
+                    src = i
+                    dest = i + 1
+                    latency = 500  # in nanoseconds
+                    # bandwidth = 1 if i in bad_links else 50  # Bad bandwidth
+                    bandwidth  = bm # good bandwidth
+                    csvwriter.writerow([src, dest, latency, bandwidth])
+                    csvwriter.writerow([dest, src, latency, bandwidth])
+                
+                # Closing the ring by connecting the last node to the first
+                src = gs - 1
+                dest = 0
+                latency = 500
+                bandwidth = bm
+                csvwriter.writerow([src, dest, latency, bandwidth])
+                csvwriter.writerow([dest, src, latency, bandwidth])
+
+                for i in range(gs):
+                    for j in range(gs):
+                        if i != j and abs(i-j) != 1:
+                            src = i
+                            dest = j
+                            latency = 500
+                            bandwidth = 1
+                            csvwriter.writerow([src, dest, latency, bandwidth])
+                            csvwriter.writerow([dest, src, latency, bandwidth])
         print(f"CSV file '{csv_filename}' has been generated.")
     return None
 
