@@ -12,7 +12,12 @@ RUN apt -y install \
     gcc g++ clang-format \
     make cmake \
     libboost-all-dev \
-    zlib1g-dev
+    zlib1g-dev python3.12 python3-pip python3-venv
+
+RUN python3 -m venv /opt/venv/tacos
+ENV PATH="/opt/venv/tacos/bin:$PATH"
+RUN pip3 install --upgrade pip
+RUN pip3 install tqdm
 ### ======================================================
 
 
@@ -55,6 +60,8 @@ ENV protobuf_DIR="/opt/protobuf-25.3/install"
 ### ======================================================
 
 RUN apt-get -y install protobuf-compiler libprotobuf-dev
+RUN apt-get -y install python3-pip
+RUN pip install tqdm
 
 ### ================== Finalize ==========================
 ## Move to the application directory
