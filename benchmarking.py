@@ -238,6 +238,9 @@ def run_tacos_commands(params_list: List[str], input_dir: str, output_csv: str =
         {"name": "greedy", "args": ["--greedy", "--run"]},
         {"name": "multiple_5", "args": ["--multiple", "5", "--run"]}
     ]
+    print("OUTPUT_CSV" , output_csv)
+    output_csv = os.path.join("final_results", output_csv)
+    os.makedirs("final_results", exist_ok=True)
     with open(output_csv, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(params_list)
@@ -319,9 +322,10 @@ def main(params: Dict[str, List[Any]]) -> None:
     for key, value in params.items(): 
         if key != 'topology':
             directory += f"_{key}{value}"
+    output_csv = directory.replace("csvs/", "") + ".csv"
     create_csv_files(directory, params)
     # run_tacos_commands(directory, f"ring_results_g{group_sizes}_b{bad_bandwidth_proportions}_m{bad_magnitudes}.csv")
-    run_tacos_commands(list(params.keys()), directory)
+    run_tacos_commands(list(params.keys()), directory, output_csv)
     print("Directory", directory)
 
 
