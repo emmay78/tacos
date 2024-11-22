@@ -13,6 +13,7 @@ import math
 def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
     # Create the output directory if it doesn't exist
     output_dir = output_dir.replace('topology', '')
+    output_dir = "./csvs/" + output_dir
     os.makedirs(output_dir, exist_ok=True)
     print(f"CSV files will be generated in the '{output_dir}' directory.") 
     topology = params['topology']
@@ -37,8 +38,7 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
                 num_bad_links = math.ceil(gs * bbp * 2)
                 # one direction
                 bad_links = random.sample(range(gs * 2), num_bad_links)
-                first_direction = bad_links[:len(bad_links)//2]
-                second_direction = bad_links[len(bad_links)//2:]
+               
                 print(f"Generating CSV: {csv_filename} | Group Size: {gs} | Bad Links: {bad_links} | Bad Magnitude: {bm} | Bad Bandwidth Proportion: {bbp}")
 
                 # Create links between consecutive nodes
@@ -46,30 +46,30 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
                     src = i
                     dest = i + 1
                     latency = 500  # in nanoseconds
-                    bandwidth = 1 if i in first_direction else bm  # Bad bandwidth
+                    bandwidth = 1 if i in bad_links else bm  # Bad bandwidth
                     csvwriter.writerow([src, dest, latency, bandwidth])
                 
                 # Closing the ring by connecting the last node to the first
                 src = gs - 1
                 dest = 0
                 latency = 500
-                bandwidth = 1 if (gs - 1) in first_direction else bm
+                bandwidth = 1 if (gs - 1) in bad_links else bm
                 csvwriter.writerow([src, dest, latency, bandwidth])
         
                 # other direction 
-                for i in range(gs - 1):
+                for i in range(gs - 2, 0, -1):
                     src = i
-                    dest = i + 1
+                    dest = i - 1
                     latency = 500  # in nanoseconds
-                    bandwidth = 1 if i + gs in second_direction else bm  # Bad bandwidth
-                    csvwriter.writerow([dest, src, latency, bandwidth])
+                    bandwidth = 1 if i + gs in bad_links else bm  # Bad bandwidth
+                    csvwriter.writerow([src, dest, latency, bandwidth])
                 
                 # Closing the ring by connecting the last node to the first
-                src = gs - 1
-                dest = 0
+                src = 0
+                dest = gs - 1
                 latency = 500
-                bandwidth = 1 if (gs - 1) in second_direction else bm
-                csvwriter.writerow([dest, src, latency, bandwidth])
+                bandwidth = 1 if (2 * gs - 1) in bad_links else bm
+                csvwriter.writerow([src, dest, latency, bandwidth])
                 
         elif topology == 'mesh':
             csv_filename = f"mesh_gs{gs}_bm{bm}.csv"
@@ -115,6 +115,80 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
         print(f"CSV file '{csv_filename}' has been generated.")
     return None
 
+def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> None:
+    """
+    Executes tacos.sh commands for each CSV file in the input directory, extracts synthesis times,
+    and writes the results to an output CSV file.
+
+    Args:
+        input_dir (str): Directory containing input CSV files.
+        output_csv (str): Path to the output results CSV file.
+    """
+    algorithms = [
+        {"name": "random", "args": ["--run"]},
+        {"name": "greedy", "args": ["--greedy", "--run"]},
+        {"name": "multiple_5", "args": ["--multiple", "5", "--run"]}
+    ]
+
+    with open(output_csv, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(['group_size', 'bad_bandwidth_proportion', 'bad_magnitude','algorithm', 'synthesis_time_ps', ])
+        print(f"Results will be written to '{output_csv}'.\n")
+
+        for filename in sorted(os.listdir(input_dir)):
+            if not filename.endswith('.csv'):
+                continue
+
+            filepath = os.path.join(input_dir, filename)
+            group_size, bad_bandwidth_proportion, magnitude = get_file_parameters(filename)
+            print(f"Processing File: {filename} | Group Size: {group_size} | Bad Bandwidth Proportion: {bad_bandwidth_proportion} | Bad Magnitude: {magnitude}")
+
+            for algo in algorithms:
+                algo_name = algo["name"]
+                algo_args = algo["args"]
+
+                if algo_name == "multiple_5":
+                    synthesis_times = []
+                    for run in range(1, 6):
+                        command = ["./tacos.sh", "--verbose", "--file", filepath] + algo_args
+                        print(f"  Running '{algo_name}' - Attempt {run}/5")
+                        stdout, stderr = run_command(command)
+
+                        if stdout is None:
+                            print(f"    Failed to execute '{algo_name}' on '{filename}'. Skipping this run.")
+                            continue
+
+                        synthesis_time = extract_synthesis_time(stdout)
+                        if synthesis_time is not None:
+                            synthesis_times.append(synthesis_time)
+                            print(f"    Extracted Synthesis Time: {synthesis_time} ps")
+                        else:
+                            print(f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.")
+
+                    if synthesis_times:
+                        best_time = min(synthesis_times)
+                        csvwriter.writerow([group_size, bad_bandwidth_proportion, magnitude,algo_name, best_time])
+                        print(f"    Best Synthesis Time for '{algo_name}': {best_time} ps\n")
+                    else:
+                        print(f"    No valid synthesis times extracted for '{algo_name}' on '{filename}'.\n")
+                else:
+                    command = ["./tacos.sh", "--verbose", "--file", filepath] + algo_args
+                    print(f"  Running '{algo_name}'")
+                    stdout, stderr = run_command(command)
+
+                    if stdout is None:
+                        print(f"    Failed to execute '{algo_name}' on '{filename}'. Skipping.\n")
+                        continue
+
+                    synthesis_time = extract_synthesis_time(stdout)
+                    if synthesis_time is not None:
+                        csvwriter.writerow([group_size, bad_bandwidth_proportion, magnitude, algo_name, synthesis_time])
+                        print(f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} ps\n")
+                    else:
+                        print(f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.\n")
+
+    print("All commands executed and results recorded.\n")
+
 def extract_synthesis_time(output: str) -> Optional[int]:
     """
     Extracts the synthesized collective time in picoseconds from the command output.
@@ -130,7 +204,146 @@ def extract_synthesis_time(output: str) -> Optional[int]:
         return int(match.group(1))
     else:
         return None
-    
+
+def run_command(command: List[str], cwd: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Executes a shell command and captures its standard output and standard error.
+
+    Args:
+        command (List[str]): The command and its arguments as a list.
+        cwd (Optional[str]): Directory to run the command in.
+
+    Returns:
+        Tuple[Optional[str], Optional[str]]: A tuple containing stdout and stderr, or (None, None) if an error occurs.
+    """
+    try:
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        return result.stdout, result.stderr
+    except subprocess.CalledProcessError as e:
+        print(f"Command '{' '.join(command)}' failed with exit code {e.returncode}")
+        print(f"Error Output: {e.stderr}")
+        return None, None
+    except FileNotFoundError:
+        print(f"Command not found: {command[0]}")
+        return None, None
+
+def get_file_parameters(filename: str) -> Tuple[str, str, str]:
+    """
+    Extracts group_size and bad_bandwidth_proportion from the filename.
+    Assumes that the filename follows the pattern 'ring_<group_size>_<bad_bandwidth_proportion>.csv'.
+
+    Args:
+        filename (str): The name of the file.
+
+    Returns:
+        Dict[str, List[Any]]: A dictionary containing the extracted parameters.
+    """
+    # extracting the existing parameters using _ as essentially a delimiter 
+    pattern = r'-?\d+\.?\d*'
+    # extracts the parameter value as well as the starting index of the match for each match
+    matches = [(match.group(), match.start()) for match in re.finditer(pattern, filename)]
+    # constructing the parameters dictionary 
+    parameters = {}
+    for value, index in matches: 
+        parameters[filename[filename.rfind('_', 0, index) + 1:index]] = value
+    return parameters
+
+
+def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> None:
+    """
+    Executes tacos.sh commands for each CSV file in the input directory, extracts synthesis times,
+    and writes the results to an output CSV file.
+
+    Args:
+        params: dictionary mapping parameteres to their list of diff values
+        input_dir (str): Directory containing input CSV files.
+        output_csv (str): Path to the output results CSV file.
+    """
+    algorithms = [
+        {"name": "random", "args": ["--run"]},
+        {"name": "greedy", "args": ["--greedy", "--run"]},
+        {"name": "multiple_5", "args": ["--multiple", "5", "--run"]}
+    ]
+    input_dir = "./csvs/" + input_dir
+    params = get_file_parameters(input_dir)
+    with open(output_csv, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        header_row = []
+        for key in params: 
+            header_row.append(key)
+        csvwriter.writerow(header_row)
+        print(f"Results will be written to '{output_csv}'.\n")
+
+        for filename in sorted(os.listdir(input_dir)):
+            if not filename.endswith('.csv'):
+                continue
+
+            filepath = os.path.join(input_dir, filename)
+            file_params = get_file_parameters(filename)
+            #print(f"Processing File: {filename} | Group Size: {group_size} | Bad Bandwidth Proportion: {bad_bandwidth_proportion} | Bad Magnitude: {magnitude}")
+
+            for algo in algorithms:
+                algo_name = algo["name"]
+                algo_args = algo["args"]
+
+                if algo_name == "multiple_5":
+                    synthesis_times = []
+                    for run in range(1, 6):
+                        command = ["./tacos.sh", "--verbose", "--file", filepath] + algo_args
+                        print(f"  Running '{algo_name}' - Attempt {run}/5")
+                        stdout, stderr = run_command(command)
+
+                        if stdout is None:
+                            print(f"    Failed to execute '{algo_name}' on '{filename}'. Skipping this run.")
+                            continue
+
+                        synthesis_time = extract_synthesis_time(stdout)
+                        if synthesis_time is not None:
+                            synthesis_times.append(synthesis_time)
+                            print(f"    Extracted Synthesis Time: {synthesis_time} ps")
+                        else:
+                            print(f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.")
+
+                    if synthesis_times:
+                        best_time = min(synthesis_times)
+                        row = []
+                        for key in file_params:
+                            row.append(file_params[key])
+                        row.append(algo_name)
+                        row.append(best_time)
+                        csvwriter.writerow(row)
+                        print(f"    Best Synthesis Time for '{algo_name}': {best_time} ps\n")
+                    else:
+                        print(f"    No valid synthesis times extracted for '{algo_name}' on '{filename}'.\n")
+                else:
+                    command = ["./tacos.sh", "--verbose", "--file", filepath] + algo_args
+                    print(f"  Running '{algo_name}'")
+                    stdout, stderr = run_command(command)
+
+                    if stdout is None:
+                        print(f"    Failed to execute '{algo_name}' on '{filename}'. Skipping.\n")
+                        continue
+
+                    synthesis_time = extract_synthesis_time(stdout)
+                    if synthesis_time is not None:
+                        row = []
+                        for key in file_params:
+                            row.append(file_params[key])
+                        row.append(algo_name)
+                        row.append(synthesis_time)
+                        csvwriter.writerow(row)
+                        print(f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} ps\n")
+                    else:
+                        print(f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.\n")
+
+    print("All commands executed and results recorded.\n")
+
 def get_used_args(args):
     return {arg: value for arg, value in vars(args).items() if value is not None}
 
@@ -142,7 +355,8 @@ def main(params: Dict[str, List[Any]]) -> None:
     for key, value in params.items(): 
         directory += f"_{key}{value}"
     create_csv_files(directory, params)
-    
+    # run_tacos_commands(directory, f"ring_results_g{group_sizes}_b{bad_bandwidth_proportions}_m{bad_magnitudes}.csv")
+    run_tacos_commands(directory)
 
 
     # directory = f"ringcsvs_g{gss}_b{bbps}_m{bms}"
@@ -159,7 +373,7 @@ if __name__ == "__main__":
             "'ring_results.csv'."
         )
     )
-    # Key for params: 
+    # Key for params: IMPT DO NOT INCLUDE _ (underscores) in param names
     # gs = group sizes
     # bm = bad magnitudes
     # bbp = bad bandwidth proportions
