@@ -279,6 +279,7 @@ def run_tacos_commands(input_dir: str, output_csv: str = 'ring_results.csv') -> 
             header_row.append(key)
         csvwriter.writerow(header_row)
         print(f"Results will be written to '{output_csv}'.\n")
+        input_dir = input_dir.replace('topology', '')
 
         for filename in sorted(os.listdir(input_dir)):
             if not filename.endswith('.csv'):
